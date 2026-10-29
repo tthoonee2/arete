@@ -1,23 +1,32 @@
 # Architecture
 
-## Today (prototype)
-Single static page. Everything runs in the browser: pricing engine, quote builder, risk desk, API console, 3D scene. State (demo sign-in, positions) lives in `localStorage`.
+## Frontend and pricing
 
-## Target
-| Layer | Choice | Why |
-|---|---|---|
-| Web | Next.js or Astro, static marketing + app shell | Fast, SEO, component reuse |
-| Pricing service | Python (FastAPI), the same Black-76/Bachelier engine | Keeps curves, vols and margin server-side |
-| Market data | Licensed feeds: ICE, LME, Platts/Argus | Redistribution licences required for display |
-| Auth | SSO/SAML + 2FA (e.g. Clerk, Auth0, WorkOS) | Institutional clients expect SSO |
-| Database | Postgres (EU/CH region) | Quotes, positions, settlements, audit log |
-| Hedging | Back-to-back on ICE/LME via a clearing broker | Desk never carries directional risk |
-| Counterparty | Licensed partner bank or broker | Selling OTC options to SMEs needs authorisation |
-| Settlement | Monthly batch on official averages; statements as PDF | Finance teams file statements |
+`src/` contains the original prototype markup, styling and controller. `tools/build.py` replaces the legacy pricing block with `packages/pricing/browser.js`, injects the Budget lock view, and appends accessibility and Budget lock controllers. The output remains a dependency-free single HTML file.
 
-## API (as shown in the Developers console)
-- `GET /v1/markets`, `GET /v1/markets/{id}/curve`
-- `POST /v1/quotes` — returns premium, breakdown, per-month detail, expiry
-- `POST /v1/protections` — idempotent; status `pending_signature` → `active`
-- `GET /v1/protections`, `GET /v1/settlements`
-- Webhooks: `quote.expired`, `protection.placed`, `settlement.created`
+The shared JavaScript engine owns market definitions, forward curves, Black-76 and Bachelier pricing, monthly average-option approximation, continuous zero-cost collar solving, settlement and seeded bill-range simulation. `packages/pricing/markets.json` is the API's shared market-definition source.
+
+## API
+
+`apps/api/pricing.py` mirrors the JavaScript calculations. The golden suite compares both implementations across 200 deterministic cases at an absolute tolerance of `1e-6`.
+
+`apps/api/main.py` provides validated FastAPI endpoints. Quotes include model and curve provenance and expire after 60 seconds. An idempotency key replays the original quote for an identical request and returns HTTP 409 if the key is reused with different inputs.
+
+The current stores are deliberately small, process-local prototype components:
+
+- No production authentication or tenant isolation.
+- No durable quote, position or idempotency storage.
+- No distributed locking, rate limiting or background workers.
+- No live curve ingestion. All responses identify the data as illustrative.
+
+## Accessibility and responsive UI
+
+The enhancement layer adds numeric slider ARIA state, modal focus containment, keyboard Escape handling, visible focus styles, coarse-pointer target sizing, reduced-motion support, improved contrast, mobile layouts and print output. Browser journeys verify the main Budget lock and quote paths, including a 375px viewport overflow check.
+
+## Delivery
+
+GitHub Actions runs syntax checks, JavaScript tests, Python/API tests, the static build and Chromium browser journeys. GitHub Pages can build the static artifact with `python3 tools/build.py` and publish the repository root; generated `index.html` is not committed.
+
+## CI configuration
+
+The verified workflow configuration is supplied with this change as `ci.yml` in the repository root until the connected GitHub account grants workflow-file permission. Move it to `.github/workflows/ci.yml` to enable it.
