@@ -1,0 +1,16 @@
+{
+  "name": "arete-pricing-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Arête commodity protection prototype, shared pricing engines and FastAPI quote service",
+  "scripts": {
+    "build": "python3 tools/build.py",
+    "lint": "node --check packages/pricing/browser.js && node --check src/app.js && node --check src/budget.js && node --check src/accessibility.js && python3 -m compileall -q apps/api tools/build.py",
+    "test": "node --test packages/pricing/test/pricing.test.js",
+    "test:api": "python3 -m pytest apps/api/tests -q",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

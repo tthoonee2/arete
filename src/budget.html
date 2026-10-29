@@ -1,0 +1,67 @@
+<!-- Budget lock view -->
+<div class="view" id="v-budget">
+  <div class="budget-hero">
+    <div class="eyebrow">Plan before you protect</div>
+    <h1>Know your exposure.<br>Then name your price.</h1>
+    <p class="lede">Start with the commodity bill, not the option chain. Budget lock turns your usage and target price into a clear protection cost and an illustrative annual bill range.</p>
+  </div>
+  <div class="budget-layout">
+    <section class="panel budget-form" aria-labelledby="budget-input-title">
+      <div class="section-heading">
+        <div><div class="eyebrow">01 · Your business</div><h2 id="budget-input-title">Build your budget case</h2></div>
+        <span class="badge">Illustrative</span>
+      </div>
+      <div class="budget-fields">
+        <label class="field field-wide">What do you buy?
+          <select id="budget-market"></select>
+        </label>
+        <label class="field">Price you want to protect at
+          <span class="input-with-unit"><input id="budget-price" type="number" inputmode="decimal"><span id="budget-price-unit"></span></span>
+        </label>
+        <label class="field">Volume each month
+          <span class="input-with-unit"><input id="budget-volume" type="number" min="1" inputmode="decimal"><span id="budget-volume-unit"></span></span>
+        </label>
+        <label class="field">Months to protect
+          <select id="budget-months"><option value="3">3 months</option><option value="6">6 months</option><option value="12" selected>12 months</option></select>
+        </label>
+        <fieldset class="field field-wide budget-structure">
+          <legend>Protection structure</legend>
+          <label><input type="radio" name="structure" value="paid" checked><span><b>Price protection</b><small>Pay a premium to keep your protection without selling another option.</small></span></label>
+          <label><input type="radio" name="structure" value="zero_cost"><span><b>Zero-cost collar</b><small>Give up some benefit beyond a second price to remove the upfront premium.</small></span></label>
+        </fieldset>
+      </div>
+      <div class="alert" id="budget-error" role="alert" hidden></div>
+      <button class="btn btn-primary btn-wide" id="budget-calculate" type="button">Calculate my budget case <span aria-hidden="true">→</span></button>
+      <p class="form-note">Uses the same Black-76 / Bachelier engine as the quote builder. No personal or business data leaves your browser.</p>
+    </section>
+    <section class="panel budget-results" aria-labelledby="budget-result-title">
+      <div class="section-heading">
+        <div><div class="eyebrow">02 · Your protection</div><h2 id="budget-result-title">The cost of certainty</h2></div>
+        <span class="badge badge-green" id="budget-structure-label">Price protection</span>
+      </div>
+      <div class="budget-result-primary">
+        <span id="budget-cost-label">Illustrative protection cost</span>
+        <strong id="budget-cost" aria-live="polite">—</strong>
+        <small id="budget-cost-monthly">Choose your inputs and calculate.</small>
+      </div>
+      <div class="budget-kpis">
+        <div><span>Chance protection pays</span><b id="budget-chance">—</b></div>
+        <div><span id="budget-limit-label">Your protected price</span><b id="budget-limit">—</b></div>
+        <div><span>Coverage</span><b id="budget-coverage">—</b></div>
+      </div>
+      <div class="budget-range" aria-labelledby="budget-range-title">
+        <div class="range-heading"><h3 id="budget-range-title">Illustrative annual bill range</h3><span>10th–90th percentile</span></div>
+        <div id="budget-chart" class="budget-chart" role="img" aria-label="Calculate to compare unprotected and protected annual bill ranges."></div>
+        <div class="range-legend"><span><i class="legend-unprotected"></i>Without protection</span><span><i class="legend-protected"></i>With protection</span></div>
+      </div>
+      <div class="budget-actions">
+        <button class="btn btn-primary" id="budget-open-quote" type="button" disabled>Fine-tune in quote builder <span aria-hidden="true">→</span></button>
+        <button class="btn" id="budget-print" type="button" disabled>Print budget case</button>
+      </div>
+    </section>
+  </div>
+  <details class="budget-method">
+    <summary>How this estimate works</summary>
+    <p>Forward prices, volatility and settlement ranges are illustrative. The annual range uses a seeded simulation of monthly average prices; each month is sampled independently. Protection payouts are deducted from the commodity bill and the upfront premium is included. The range is not a confidence guarantee or a forecast.</p>
+  </details>
+</div>
