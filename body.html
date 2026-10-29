@@ -1,0 +1,306 @@
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#home" aria-label="Arête home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19 L9.2 6.5 L13 12.6 L15.6 9 L22 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"/><path d="M6.6 11 L9.2 6.5 L11.2 9.7" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Arête</b></a>
+    <nav class="navlinks" aria-label="Pages"><a href="#home">Overview</a><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a><a href="#basis">Basis lab</a><a href="#developers">Developers</a><a href="#institutions">Institutions</a><a href="#trust">Trust</a></nav>
+    <div class="acct" id="acct"></div>
+    <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 8h16M4 16h16" stroke="currentColor" stroke-width="1.6"/></svg></button>
+  </div>
+  <nav class="menu" id="menu" hidden aria-label="Pages"><a href="#home">Overview</a><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a><a href="#basis">Basis lab</a><a href="#developers">Developers</a><a href="#institutions">Institutions</a><a href="#trust">Trust</a></nav>
+</header>
+
+<section class="view" data-view="home" id="home">
+  <section class="peak" id="peak" aria-label="Introduction">
+    <div class="peak-pin">
+      <canvas id="peak-cv" aria-hidden="true"></canvas>
+      <div class="peak-shade" aria-hidden="true"></div>
+      <div class="wrap pk-hero" id="pk-hero">
+        <span class="idx">ARÊTE — COMMODITY PRICE PROTECTION</span>
+        <h1>Price certainty for the real economy.</h1>
+        <p>Cap what your business pays for energy, metals and food. Priced on exchange benchmarks, settled in cash every month.</p>
+        <div class="ctas"><a class="btn" href="#price">Get a price <span class="arr">→</span></a><button class="btn ghost" data-scroll-p="0.25">How it works</button></div>
+      </div>
+      <div class="wp" data-i="0"><span class="wp-n">01 / 03</span><b>Choose the benchmark</b><span>Energy, metals, food or a regional spread. 25 exchange-settled markets.</span></div>
+      <div class="wp" data-i="1"><span class="wp-n">02 / 03</span><b>Set your limit</b><span>Your price, your volume, your months. Quoted live.</span></div>
+      <div class="wp" data-i="2"><span class="wp-n">03 / 03</span><b>Settle the difference</b><span>If the monthly average crosses your limit, we pay the gap in cash.</span></div>
+      <div class="wrap pk-end" id="pk-end">
+        <span class="idx">FROM THE SUMMIT</span>
+        <h2>Above the noise.</h2>
+        <p>Whatever the market does, your price stays where you set it.</p>
+        <div class="ctas"><a class="btn" href="#price">Get a price <span class="arr">→</span></a></div>
+      </div>
+      <div class="pk-hint" id="pk-hint" aria-hidden="true"><span></span>SCROLL</div>
+      <div class="wrap pk-meta" aria-hidden="true"><span>45.9763°N 7.6586°E</span><span class="hide-s">ALT 4478 M</span><span class="hide-s">WIND 38 KM/H NW</span><span>REAL-TIME RENDER</span></div>
+    </div>
+  </section>
+  <div class="ticker" aria-label="Indicative prices"><div class="ticker-track" id="ticker"></div></div>
+
+  <section class="wrap sec">
+    <div class="strip4">
+      <div><b id="n-markets">25</b><small>Exchange-settled benchmarks</small></div>
+      <div><b>1–12</b><small>Months of tenor, any strip</small></div>
+      <div><b>Monthly</b><small>Cash settlement on official averages</small></div>
+      <div><b>0</b><small>Margin calls on paid protection</small></div>
+    </div>
+  </section>
+
+  <section class="wrap sec">
+    <div class="sec-h"><span class="idx">01 — PLATFORM</span><h2>One platform, from quote to settlement.</h2><p>Everything a finance team needs to manage commodity price risk, without a trading desk.</p></div>
+    <div class="pillars">
+      <a class="pillar" href="#price"><span class="idx">A</span><h3>Price</h3><p>Live quotes on caps, floors and zero-cost collars, with every input visible.</p><span class="go">Open pricing →</span></a>
+      <a class="pillar" href="#desk"><span class="idx">B</span><h3>Monitor</h3><p>A risk desk for your book: coverage, mark-to-market and stress tests.</p><span class="go">Open risk desk →</span></a>
+      <a class="pillar" href="#basis"><span class="idx">C</span><h3>Match</h3><p>Test how your supplier’s price tracks a benchmark and size the hedge.</p><span class="go">Open basis lab →</span></a>
+      <a class="pillar" href="#developers"><span class="idx">D</span><h3>Integrate</h3><p>A REST API and webhooks for ERPs, treasury systems and platforms.</p><span class="go">Read the API →</span></a>
+      <a class="pillar" href="#institutions"><span class="idx">E</span><h3>Distribute</h3><p>Embed protection in your own product, under your own brand.</p><span class="go">For institutions →</span></a>
+    </div>
+  </section>
+
+  <section class="story" id="story" aria-label="How it works">
+    <div class="story-pin">
+      <div class="wrap story-in">
+        <div class="story-text">
+          <span class="eyebrow">02 — How the payout works</span>
+          <ol class="steps" id="steps">
+            <li class="on"><b>Prices move.</b><span>Fuel, gas, metals and food swing every month.</span></li>
+            <li><b>You set a limit.</b><span>Pick the most you want to pay.</span></li>
+            <li><b>We pay the difference.</b><span>When the monthly average goes above it, we cover the gap.</span></li>
+            <li><b>Settled every month.</b><span>Cash to your account. Your cost is fixed from day one.</span></li>
+          </ol>
+          <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="story-art panel"><svg id="story-svg" viewBox="0 0 600 380" role="img" aria-label="A price line, a maximum price, and monthly payouts where the price goes above it"></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap sec">
+    <div class="sec-h"><span class="idx">03 — CLIENTS</span><h2>Built for businesses without a trading desk.</h2><p>Hauliers, airlines, shipowners, manufacturers, food producers and energy-intensive industry.</p></div>
+    <div class="uses"><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a1.5 1.5 0 1 0 0-.01M17 19a1.5 1.5 0 1 0 0-.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Transport & logistics</b><span>Cap your diesel bill across the fleet.</span><button class="btn ghost sm" data-pick="diesel">Price diesel</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 13l8-2 4-7h2l-2 7 6 1 2-2h1l-1 4 1 4h-1l-2-2-6 1 2 7h-2l-4-7-8-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><b>Aviation</b><span>Lock a ceiling on jet fuel for the season.</span><button class="btn ghost sm" data-pick="jet">Price jet fuel</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15l2 5h14l2-5zM6 15V9h12v6M12 9V4M9 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Shipping</b><span>Protect bunker costs on marine fuel 0.5%.</span><button class="btn ghost sm" data-pick="vlsfo">Price marine fuel</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V10l5 3V10l5 3V6h3l1 4h2l2 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Manufacturing</b><span>Copper, aluminium and gas, in one place.</span><button class="btn ghost sm" data-pick="copper">Price copper</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM16 10h2a2 2 0 0 1 0 4h-2M8 3v2M12 3v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><b>Food & drink</b><span>Coffee, cocoa and sugar without the surprises.</span><button class="btn ghost sm" data-pick="arabica">Price coffee</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Italian industry</b><span>Cover the gas premium Italy pays over TTF.</span><button class="btn ghost sm" data-pick="psv">Price Italy gas premium</button></div></div>
+
+  </section>
+
+  <section class="wrap sec">
+    <div class="band"><div><h2>Your price, in under a minute.</h2><p>No account needed for a quote. Every number is shown, from mid-market value to fees.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#price">Get a price →</a><a class="btn ghost" href="#institutions">For institutions</a></div></div>
+  </section>
+</section>
+
+<section class="view" data-view="price" id="price" hidden>
+  <div class="wrap page-h"><span class="idx">PRICE</span><h1>Get your price.</h1><p>Live and indicative. Change anything and it reprices instantly; every input is shown.</p></div>
+  <main class="wrap grid">
+  <div class="col">
+    <section class="panel" aria-label="Set up your protection">
+      <div class="step">
+        <h2><span class="n">1</span><span>What does your business buy or sell?</span></h2>
+        <div class="tabs" id="cats" role="group" aria-label="Category"></div>
+        <div class="tiles" id="tiles"></div>
+        <p class="hint" id="c-hint"></p>
+      </div>
+
+      <div class="step">
+        <h2><span class="n">2</span><span>What worries you?</span></h2>
+        <div class="choice">
+          <button class="opt dir" id="dir-up" aria-pressed="true"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-6 4 4 6-7M14 8h6v6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Prices going up</b><small>I buy it</small></span></button>
+          <button class="opt dir" id="dir-down" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l6 6 4-4 6 7M14 16h6v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span><b>Prices going down</b><small>I sell it</small></span></button>
+        </div>
+      </div>
+
+      <div class="step">
+        <h2><span class="n">3</span><span>How much do you <span id="verb">buy</span> a month?</span></h2>
+        <div class="qbox">
+          <button class="qbtn" id="q-minus" aria-label="Less">−</button>
+          <label class="qval"><input type="number" id="usage" min="0" inputmode="decimal" aria-label="Monthly amount"><span id="usage-unit"></span></label>
+          <button class="qbtn" id="q-plus" aria-label="More">+</button>
+        </div>
+        <div class="presets" id="q-presets"></div>
+        <div class="cover">
+          <div class="row"><span class="lab">Cover</span><span class="val" id="pct-val"></span></div>
+          <div class="blocks" id="blocks" role="slider" tabindex="0" aria-label="Share to cover" aria-valuemin="10" aria-valuemax="100"></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <h2><span class="n">4</span><span>Set your protection</span></h2>
+        <p class="hint" id="cv-help"></p>
+        <div class="presets" id="presets"></div>
+        <div class="canvas" id="canvas">
+          <svg id="cv" aria-label="Expected price for each month with your protection band"></svg>
+          <div id="handles"></div>
+          <div class="tip" id="tip" hidden></div>
+        </div>
+        <div class="cv-legend">
+          <span><i class="lg-bar"></i>Expected price</span>
+          <span><i class="lg-range"></i>Likely range</span>
+          <span><i class="lg-zone"></i>Where we pay you</span>
+          <span id="lg-owe"><i class="lg-owe"></i>Where you pay us</span>
+        </div>
+        <label class="switch"><input type="checkbox" id="limit"><span>Cap the cover to pay less</span></label>
+      </div>
+
+      <div class="step">
+        <h2><span class="n">5</span><span>How do you want to pay?</span></h2>
+        <div class="choice">
+          <button class="opt pay" id="mode-band" aria-pressed="true"><span class="pay-k">Fixed price</span><span class="pay-n" id="pay-band"></span><small id="pay-band-sub"></small></button>
+          <button class="opt pay" id="mode-collar" aria-pressed="false"><span class="pay-k">Nothing today</span><span class="pay-n" id="pay-collar"></span><small id="pay-collar-sub"></small></button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <aside class="panel ticket" id="ticket" aria-live="polite">
+    <div class="tk-head"><h2 id="tk-title"></h2><small id="tk-sub"></small></div>
+    <div class="cost live"><span class="big" id="big"></span><span class="lbl" id="big-lbl"></span></div>
+    <p class="sentence live" id="sentence"></p>
+    <div class="worst live" id="worst"></div>
+    <div class="share live" id="share"></div>
+    <table class="scen live">
+      <thead><tr><th>If the monthly average price is</th><th>You receive</th></tr></thead>
+      <tbody id="scen"></tbody>
+    </table>
+    <p class="promise" id="promise"></p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn block" id="buy">Get protected</button>
+      <div class="timer" id="timer"></div>
+    </div>
+    <details class="live">
+      <summary>How this price is calculated</summary>
+      <table class="dl" id="dl"></table>
+      <p class="small" id="method"></p>
+    </details>
+  </aside>
+</main>
+</section>
+
+<section class="view" data-view="markets" id="markets" hidden>
+  <div class="wrap page-h"><span class="idx">MARKETS</span><h1>25 benchmarks.</h1><p>Each line shows the forward curve for the next 12 months, drawn on the same ±15% scale.</p></div>
+  <div class="wrap" id="mk"></div>
+</section>
+
+<section class="view" data-view="desk" id="desk" hidden>
+  <div class="wrap page-h"><span class="idx">RISK DESK</span><h1>Your book, at a glance.</h1><p>Coverage, value and exposure across every protection, with a live stress test.</p></div>
+  <div class="wrap" id="desk-body"></div>
+</section>
+
+<section class="view" data-view="basis" id="basis" hidden>
+  <div class="wrap page-h"><span class="idx">BASIS LAB</span><h1>Does the benchmark track your price?</h1><p>Paste your supplier’s monthly prices next to a benchmark. We measure the fit and size the hedge.</p></div>
+  <div class="wrap lab">
+    <div class="panel card">
+      <div class="fld"><label for="b-mkt">Benchmark</label><select id="b-mkt"></select></div>
+      <div class="fld"><label for="b-vol">Your monthly spend</label><input id="b-vol" type="number" inputmode="decimal" value="250000"></div>
+      <div class="fld"><label for="b-data">Monthly prices, oldest first: <span class="mono">your price, benchmark</span></label><textarea id="b-data" spellcheck="false" placeholder="1.62, 690&#10;1.65, 702&#10;…"></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="b-run">Analyse</button><button class="btn ghost" id="b-ex">Load example</button></div>
+      <p class="hint">At least 12 months. Fit is measured on monthly percentage changes, so units and currency don’t need to match.</p>
+    </div>
+    <div class="panel card" id="b-out"><div class="empty" style="padding:0">Load the example or paste your own prices.</div></div>
+  </div>
+</section>
+
+<section class="view" data-view="developers" id="developers" hidden>
+  <div class="wrap page-h"><span class="idx">DEVELOPERS</span><h1>Price risk, as an API.</h1><p>Quote, place and settle protections from your ERP, treasury system or app. The console below runs the real pricing engine in your browser.</p></div>
+  <div class="wrap dev">
+    <div class="eps" id="eps"></div>
+    <div class="console">
+      <div class="reqline"><code id="req-line"></code><button class="btn accent" id="req-send">Send request</button></div>
+      <textarea class="code" id="req-body" spellcheck="false" aria-label="Request body"></textarea>
+      <div class="resmeta" id="res-meta"></div>
+      <pre class="code" id="res-body" aria-live="polite"></pre>
+      <div class="ctabs" id="ctabs"><button data-l="curl" aria-pressed="true">curl</button><button data-l="py" aria-pressed="false">Python</button><button data-l="ts" aria-pressed="false">TypeScript</button></div>
+      <pre class="code" id="snippet"></pre>
+    </div>
+  </div>
+  <section class="wrap sec">
+    <div class="cols3">
+      <div><span class="idx">AUTH</span><h3>Scoped API keys</h3><p>Separate keys for test and live, scoped per entity, with full audit history.</p></div>
+      <div><span class="idx">EVENTS</span><h3>Webhooks</h3><p><span class="mono">quote.expired</span>, <span class="mono">protection.placed</span>, <span class="mono">settlement.created</span>, signed and retried.</p></div>
+      <div><span class="idx">RELIABILITY</span><h3>Idempotent by design</h3><p>Every write takes an idempotency key, so retries never double-book a protection.</p></div>
+    </div>
+  </section>
+</section>
+
+<section class="view" data-view="institutions" id="institutions" hidden>
+  <div class="wrap page-h"><span class="idx">INSTITUTIONS</span><h1>Embed price protection.</h1><p>For banks, fuel-card issuers, ERPs and procurement platforms. Offer caps to your clients under your brand, on our pricing, hedging and settlement.</p></div>
+  <div class="wrap inst">
+    <div class="cols3 stack">
+      <div><span class="idx">01</span><h3>Your brand, our engine</h3><p>White-label widget or full API. You own the client relationship; we run pricing, risk and settlement.</p></div>
+      <div><span class="idx">02</span><h3>Revenue share</h3><p>Earn on every protection placed through your channel, with transparent per-trade reporting.</p></div>
+      <div><span class="idx">03</span><h3>Live in weeks</h3><p>Sandbox on day one, a drop-in widget for a pilot, then the API for a native experience.</p></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span class="idx">LIVE PREVIEW — EMBEDDED WIDGET</span>
+      <div class="widget" id="wdg"></div>
+      <pre class="code" id="embed-code"></pre>
+    </div>
+  </div>
+</section>
+
+<section class="view" data-view="trust" id="trust" hidden>
+  <div class="wrap page-h"><span class="idx">TRUST</span><h1>Built to institutional standards.</h1><p>How Arête is designed to operate: execution, risk, client money and security.</p></div>
+  <div class="wrap"><span class="note-proto">Prototype — this page describes the intended operating model, not current authorisations.</span></div>
+  <section class="wrap sec" style="padding-top:28px">
+    <div class="cols3">
+      <div><span class="idx">EXECUTION</span><h3>Licensed counterparty</h3><p>Protections are issued through a regulated partner. Arête never takes a directional view on client positions.</p></div>
+      <div><span class="idx">RISK</span><h3>Hedged back-to-back</h3><p>Every client position is offset on ICE or LME, netted across the book, within daily limits per market.</p></div>
+      <div><span class="idx">SETTLEMENT</span><h3>Official benchmarks only</h3><p>Payouts use published exchange settlements and assessments, never an in-house price.</p></div>
+      <div><span class="idx">CLIENT MONEY</span><h3>Segregated</h3><p>Premiums and payouts flow through segregated client accounts, reconciled daily.</p></div>
+      <div><span class="idx">SECURITY</span><h3>SSO, 2FA, audit trail</h3><p>Role-based access, SAML single sign-on and an immutable audit log on every action.</p></div>
+      <div><span class="idx">DATA</span><h3>Swiss and EU hosting</h3><p>Client data stays in Switzerland or the EU, encrypted at rest and in transit.</p></div>
+    </div>
+  </section>
+  <section class="wrap sec"><div class="sec-h"><span class="idx">COMPARE</span><h2>Why not a bank hedge?</h2></div><div class="cmp-wrap"><table class="cmp">
+    <thead><tr><th></th><th class="us">Price Band</th><th>Bank hedge</th><th>Fixed supplier price</th></tr></thead>
+    <tbody>
+      <tr><td>Minimum size</td><td class="us">Any volume, 1 month</td><td>Usually large</td><td>Set by supplier</td></tr>
+      <tr><td>Paperwork</td><td class="us">Online, minutes</td><td>ISDA and credit lines</td><td>Contract talks</td></tr>
+      <tr><td>Margin calls</td><td class="us">None on fixed price</td><td>Often</td><td>None</td></tr>
+      <tr><td>If prices fall</td><td class="us">You still save</td><td>Usually no saving</td><td>You overpay</td></tr>
+      <tr><td>Cost shown upfront</td><td class="us">Yes</td><td>In the spread</td><td>In the price</td></tr>
+    </tbody>
+  </table></div></section>
+  <section class="wrap sec"><div class="sec-h"><span class="idx">QUESTIONS</span><h2>Common questions.</h2></div><div class="faq">
+    <details><summary>Is this insurance?</summary><p>It works like insurance but it’s a cash-settled option on a public market price. You pay once. If the monthly average crosses your limit, we pay the difference.</p></details>
+    <details><summary>Which price do you use?</summary><p>The monthly average of the benchmark shown on each product, such as ICE Brent or LME copper.</p></details>
+    <details><summary>My supplier’s price isn’t exactly the benchmark.</summary><p>Most local prices move with a benchmark. Regional spread products cover the gap, for example Italian gas over Dutch TTF.</p></details>
+    <details><summary>When do I get paid?</summary><p>After each covered month ends and the average is known.</p></details>
+    <details><summary>Can I end up owing money?</summary><p>Not with a fixed price. With “Nothing today” you pay the difference if prices move the other way.</p></details>
+  </div></section>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div><a class="brand" href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19 L9.2 6.5 L13 12.6 L15.6 9 L22 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"/><path d="M6.6 11 L9.2 6.5 L11.2 9.7" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Arête</b></a><p>Commodity price protection for businesses, priced on exchange benchmarks and settled in cash.</p></div>
+    <div><h4>PLATFORM</h4><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a><a href="#basis">Basis lab</a></div>
+    <div><h4>BUILD</h4><a href="#developers">API</a><a href="#institutions">Institutions</a><a href="#developers">Webhooks</a></div>
+    <div><h4>COMPANY</h4><a href="#trust">Trust</a><a href="#trust">Operating model</a><a href="#trust">Questions</a></div>
+  </div>
+  <div class="wrap foot-legal"><p>Prototype for discussion. Prices are indicative, not live market data; nothing is bought or sold. Not an offer, solicitation or financial advice. Benchmarks are trademarks of their respective owners.</p><span>© 2026 Arête</span></div>
+</footer>
+
+<div class="mbar"><div><small id="mb-lbl">PER MONTH</small><b id="mb-val"></b></div><button class="btn sm" id="mb-go">See quote</button></div>
+
+<div class="overlay" id="login" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="l-title">
+    <h2 id="l-title">Sign in</h2>
+    <p class="hint" id="l-why">Use your business account.</p>
+    <div class="fld" id="l-company-f" hidden><label for="l-company">Company name</label><input id="l-company" autocomplete="organization"></div>
+    <div class="fld"><label for="l-email">Work email</label><input id="l-email" type="email" autocomplete="email"></div>
+    <div class="fld"><label for="l-pass">Password</label><input id="l-pass" type="password" autocomplete="current-password"></div>
+    <p class="err" id="l-err"></p>
+    <button class="btn block" id="l-go">Sign in</button>
+    <div class="or">or</div>
+    <button class="btn ghost block" id="l-sso">Continue with SSO</button>
+    <p class="hint" style="text-align:center"><span id="l-switch-t">New here?</span> <button class="linkbtn" id="l-switch">Open a business account</button></p>
+    <p class="hint" style="text-align:center;font-size:12px">Demo sign-in. Nothing you type leaves this page.</p>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h2 id="m-title">Check and confirm</h2>
+    <p id="m-summary"></p>
+    <div class="warnbox">Demo only. In the live product this step shows the full terms, checks your business and takes payment.</div>
+    <label class="check"><input type="checkbox" id="c1">I've read the terms for this protection.</label>
+    <label class="check"><input type="checkbox" id="c2">This covers prices my business really pays or receives.</label>
+    <label class="check" id="c3-row"><input type="checkbox" id="c3"><span id="c3-t"></span></label>
+    <div class="btns"><button class="btn ghost" id="m-cancel">Back</button><button class="btn" id="m-confirm" disabled>Confirm</button></div>
+  </div>
+</div>
