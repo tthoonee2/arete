@@ -41,7 +41,7 @@ npx playwright install chromium
 npm run test:browser     # Budget lock, quote journey, 375px mobile overflow
 ```
 
-CI runs all of these checks on pull requests and pushes to `main`.
+The supplied `ci.yml` runs all of these checks on pull requests and pushes to `main`. Move it to `.github/workflows/ci.yml` to activate it; the current GitHub connection does not have workflow-file permission.
 
 ## Prototype boundaries
 
