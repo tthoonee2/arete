@@ -468,7 +468,8 @@ const canConfirm = () => $("c1").checked && $("c2").checked && (state.mode !== "
 function renderTicker() {
   const one = ALL.map(u => `<button class="tk-chip" data-pick="${u.id}"><b>${u.name}</b><span>${fmtP(u, fwd(u, MONTHS[0]))}</span></button>`).join("");
   $("ticker").innerHTML = one + one.replace(/<button /g, '<button tabindex="-1" aria-hidden="true" ');
-  $("n-markets").textContent = ALL.length;
+  const count = $("n-markets");
+  if (count) count.textContent = ALL.length;
 }
 function pickAnywhere(id) {
   const cat = Object.keys(U).find(k => U[k].some(u => u.id === id)); if (!cat) return;
@@ -477,7 +478,7 @@ function pickAnywhere(id) {
 document.addEventListener("click", e => { const b = e.target.closest("[data-pick]"); if (b) pickAnywhere(b.dataset.pick); });
 function pick(id) { state.id = id; state.usage = cur().usage; state.shock = 0; setDefaults(); renderProducts(); render(); }
 $("cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; state.cat = b.dataset.cat; pick(U[state.cat][0].id); });
-$("tiles").addEventListener("click", e => { const b = e.target.closest("[data-id]"); if (b) pick(b.dataset.id); });
+$("tiles").addEventListener("click", e => { const b = e.target.closest("[data-id]"); if (!b) return; pick(b.dataset.id); });
 $("dir-up").addEventListener("click", () => { state.dir = "up"; setDefaults(); render(); });
 $("dir-down").addEventListener("click", () => { state.dir = "down"; setDefaults(); render(); });
 $("mode-band").addEventListener("click", () => { state.mode = "band"; render(); });
@@ -603,6 +604,7 @@ function renderMarkets() {
 // ================= Scroll story =================
 const ST = { W: 600, H: 380, L: 24, R: 16, T: 24, B: 112 };
 function buildStory() {
+  if (!$("story-svg")) return;
   ST.W = innerWidth < 600 ? 420 : 600; ST.small = innerWidth < 600;
   const { W, H, L, R, T, B } = ST, ph = H - T - B, n = 48, cap = 62;
   // Monthly knots, smoothed (Catmull-Rom) with a little noise: two spells above the max price.
@@ -659,7 +661,9 @@ function onScroll() {
     if (!reduce) document.querySelectorAll(".alps .ly").forEach(l => l.style.transform = `translateY(${(Math.min(y, 700) * Number(l.dataset.k)).toFixed(1)}px)`);
     if (document.body.dataset.view !== "home") return;
     if (reduce) { storyProgress(1); document.querySelectorAll("#steps li").forEach(li => li.classList.add("on")); return; }
-    const r = $("story").getBoundingClientRect(), span = r.height - window.innerHeight;
+    const story = $("story");
+    if (!story) return;
+    const r = story.getBoundingClientRect(), span = r.height - window.innerHeight;
     storyProgress(clamp01(-r.top / Math.max(1, span)));
   });
 }
