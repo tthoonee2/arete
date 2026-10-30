@@ -2,11 +2,11 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="#home" aria-label="Arête home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19 L9.2 6.5 L13 12.6 L15.6 9 L22 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"/><path d="M6.6 11 L9.2 6.5 L11.2 9.7" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Arête</b></a>
-    <nav class="navlinks" aria-label="Pages"><a href="#home">Overview</a><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a><a href="#basis">Basis lab</a><a href="#developers">Developers</a><a href="#institutions">Institutions</a><a href="#trust">Trust</a></nav>
+    <nav class="navlinks" aria-label="Pages"><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a></nav>
     <div class="acct" id="acct"></div>
     <button class="menu-btn" id="menu-btn" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 8h16M4 16h16" stroke="currentColor" stroke-width="1.6"/></svg></button>
   </div>
-  <nav class="menu" id="menu" hidden aria-label="Pages"><a href="#home">Overview</a><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a><a href="#basis">Basis lab</a><a href="#developers">Developers</a><a href="#institutions">Institutions</a><a href="#trust">Trust</a></nav>
+  <nav class="menu" id="menu" hidden aria-label="Pages"><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a></nav>
 </header>
 
 <section class="view" data-view="home" id="home">
@@ -15,72 +15,31 @@
       <canvas id="peak-cv" aria-hidden="true"></canvas>
       <div class="peak-shade" aria-hidden="true"></div>
       <div class="wrap pk-hero" id="pk-hero">
-        <span class="idx">ARÊTE — COMMODITY PRICE PROTECTION</span>
-        <h1>Price certainty for the real economy.</h1>
-        <p>Cap what your business pays for energy, metals and food. Priced on exchange benchmarks, settled in cash every month.</p>
-        <div class="ctas"><a class="btn" href="#price">Get a price <span class="arr">→</span></a><button class="btn ghost" data-scroll-p="0.25">How it works</button></div>
+        <span class="idx">COMMODITY PRICE PROTECTION</span>
+        <h1>Keep commodity costs within budget.</h1>
+        <p>Choose the price you want to pay for energy, metals or food. If the market rises above it, we pay the difference.</p>
+        <div class="ctas"><a class="btn" href="#price">Get a price <span class="arr">→</span></a><small>No account needed.</small></div>
       </div>
-      <div class="wp" data-i="0"><span class="wp-n">01 / 03</span><b>Choose the benchmark</b><span>Energy, metals, food or a regional spread. 25 exchange-settled markets.</span></div>
-      <div class="wp" data-i="1"><span class="wp-n">02 / 03</span><b>Set your limit</b><span>Your price, your volume, your months. Quoted live.</span></div>
-      <div class="wp" data-i="2"><span class="wp-n">03 / 03</span><b>Settle the difference</b><span>If the monthly average crosses your limit, we pay the gap in cash.</span></div>
+      <div class="wp" data-i="0"><b>Choose your market</b><span>Energy, metals or food.</span></div>
+      <div class="wp" data-i="1"><b>Set your price</b><span>Your limit, volume and months.</span></div>
+      <div class="wp" data-i="2"><b>Settle monthly</b><span>If the average crosses your limit, we pay the difference.</span></div>
       <div class="wrap pk-end" id="pk-end">
-        <span class="idx">FROM THE SUMMIT</span>
-        <h2>Above the noise.</h2>
-        <p>Whatever the market does, your price stays where you set it.</p>
-        <div class="ctas"><a class="btn" href="#price">Get a price <span class="arr">→</span></a></div>
+        <span class="idx">PAID PROTECTION</span>
+        <h2>Your limit stays fixed.</h2>
+        <p>One known upfront cost. No margin calls.</p>
       </div>
       <div class="pk-hint" id="pk-hint" aria-hidden="true"><span></span>SCROLL</div>
-      <div class="wrap pk-meta" aria-hidden="true"><span>45.9763°N 7.6586°E</span><span class="hide-s">ALT 4478 M</span><span class="hide-s">WIND 38 KM/H NW</span><span>REAL-TIME RENDER</span></div>
     </div>
   </section>
   <div class="ticker" aria-label="Indicative prices"><div class="ticker-track" id="ticker"></div></div>
 
-  <section class="wrap sec">
-    <div class="strip4">
-      <div><b id="n-markets">25</b><small>Exchange-settled benchmarks</small></div>
-      <div><b>1–12</b><small>Months of tenor, any strip</small></div>
-      <div><b>Monthly</b><small>Cash settlement on official averages</small></div>
-      <div><b>0</b><small>Margin calls on paid protection</small></div>
+  <section class="wrap home-note" aria-labelledby="home-note-title">
+    <span class="idx">HOW IT WORKS</span>
+    <div>
+      <h2 id="home-note-title">You set the limit.<br>We cover the gap.</h2>
+      <p>Pay once for protection. Each month, if the benchmark average is above your limit, you receive a cash payment. If prices fall, you keep the saving.</p>
+      <a class="text-link" href="#budget">Start with your budget <span aria-hidden="true">→</span></a>
     </div>
-  </section>
-
-  <section class="wrap sec">
-    <div class="sec-h"><span class="idx">01 — PLATFORM</span><h2>One platform, from quote to settlement.</h2><p>Everything a finance team needs to manage commodity price risk, without a trading desk.</p></div>
-    <div class="pillars">
-      <a class="pillar" href="#price"><span class="idx">A</span><h3>Price</h3><p>Live quotes on caps, floors and zero-cost collars, with every input visible.</p><span class="go">Open pricing →</span></a>
-      <a class="pillar" href="#desk"><span class="idx">B</span><h3>Monitor</h3><p>A risk desk for your book: coverage, mark-to-market and stress tests.</p><span class="go">Open risk desk →</span></a>
-      <a class="pillar" href="#basis"><span class="idx">C</span><h3>Match</h3><p>Test how your supplier’s price tracks a benchmark and size the hedge.</p><span class="go">Open basis lab →</span></a>
-      <a class="pillar" href="#developers"><span class="idx">D</span><h3>Integrate</h3><p>A REST API and webhooks for ERPs, treasury systems and platforms.</p><span class="go">Read the API →</span></a>
-      <a class="pillar" href="#institutions"><span class="idx">E</span><h3>Distribute</h3><p>Embed protection in your own product, under your own brand.</p><span class="go">For institutions →</span></a>
-    </div>
-  </section>
-
-  <section class="story" id="story" aria-label="How it works">
-    <div class="story-pin">
-      <div class="wrap story-in">
-        <div class="story-text">
-          <span class="eyebrow">02 — How the payout works</span>
-          <ol class="steps" id="steps">
-            <li class="on"><b>Prices move.</b><span>Fuel, gas, metals and food swing every month.</span></li>
-            <li><b>You set a limit.</b><span>Pick the most you want to pay.</span></li>
-            <li><b>We pay the difference.</b><span>When the monthly average goes above it, we cover the gap.</span></li>
-            <li><b>Settled every month.</b><span>Cash to your account. Your cost is fixed from day one.</span></li>
-          </ol>
-          <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
-        </div>
-        <div class="story-art panel"><svg id="story-svg" viewBox="0 0 600 380" role="img" aria-label="A price line, a maximum price, and monthly payouts where the price goes above it"></svg></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="wrap sec">
-    <div class="sec-h"><span class="idx">03 — CLIENTS</span><h2>Built for businesses without a trading desk.</h2><p>Hauliers, airlines, shipowners, manufacturers, food producers and energy-intensive industry.</p></div>
-    <div class="uses"><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a1.5 1.5 0 1 0 0-.01M17 19a1.5 1.5 0 1 0 0-.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Transport & logistics</b><span>Cap your diesel bill across the fleet.</span><button class="btn ghost sm" data-pick="diesel">Price diesel</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 13l8-2 4-7h2l-2 7 6 1 2-2h1l-1 4 1 4h-1l-2-2-6 1 2 7h-2l-4-7-8-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><b>Aviation</b><span>Lock a ceiling on jet fuel for the season.</span><button class="btn ghost sm" data-pick="jet">Price jet fuel</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15l2 5h14l2-5zM6 15V9h12v6M12 9V4M9 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Shipping</b><span>Protect bunker costs on marine fuel 0.5%.</span><button class="btn ghost sm" data-pick="vlsfo">Price marine fuel</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V10l5 3V10l5 3V6h3l1 4h2l2 10z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Manufacturing</b><span>Copper, aluminium and gas, in one place.</span><button class="btn ghost sm" data-pick="copper">Price copper</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM16 10h2a2 2 0 0 1 0 4h-2M8 3v2M12 3v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><b>Food & drink</b><span>Coffee, cocoa and sugar without the surprises.</span><button class="btn ghost sm" data-pick="arabica">Price coffee</button></div><div class="use"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 2 1 3 3 3 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><b>Italian industry</b><span>Cover the gas premium Italy pays over TTF.</span><button class="btn ghost sm" data-pick="psv">Price Italy gas premium</button></div></div>
-
-  </section>
-
-  <section class="wrap sec">
-    <div class="band"><div><h2>Your price, in under a minute.</h2><p>No account needed for a quote. Every number is shown, from mid-market value to fees.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn" href="#price">Get a price →</a><a class="btn ghost" href="#institutions">For institutions</a></div></div>
   </section>
 </section>
 
@@ -267,12 +226,11 @@
 
 <footer>
   <div class="wrap foot">
-    <div><a class="brand" href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19 L9.2 6.5 L13 12.6 L15.6 9 L22 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="miter"/><path d="M6.6 11 L9.2 6.5 L11.2 9.7" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Arête</b></a><p>Commodity price protection for businesses, priced on exchange benchmarks and settled in cash.</p></div>
-    <div><h4>PLATFORM</h4><a href="#price">Price</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a><a href="#basis">Basis lab</a></div>
-    <div><h4>BUILD</h4><a href="#developers">API</a><a href="#institutions">Institutions</a><a href="#developers">Webhooks</a></div>
-    <div><h4>COMPANY</h4><a href="#trust">Trust</a><a href="#trust">Operating model</a><a href="#trust">Questions</a></div>
+    <div><a class="brand" href="#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19 L9.2 6.5 L13 12.6 L15.6 9 L22 19" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6.6 11 L9.2 6.5 L11.2 9.7" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg><b>Arête</b></a><p>Commodity price protection for businesses.</p></div>
+    <div><h4>PRODUCT</h4><a href="#price">Price</a><a href="#budget">Budget lock</a><a href="#markets">Markets</a><a href="#desk">Risk desk</a></div>
+    <div><h4>RESOURCES</h4><a href="#basis">Basis lab</a><a href="#developers">API</a><a href="#trust">Questions</a></div>
   </div>
-  <div class="wrap foot-legal"><p>Prototype for discussion. Prices are indicative, not live market data; nothing is bought or sold. Not an offer, solicitation or financial advice. Benchmarks are trademarks of their respective owners.</p><span>© 2026 Arête</span></div>
+  <div class="wrap foot-legal"><p>Prototype. Indicative prices only; no contracts are bought or sold. Not financial advice.</p><span>© 2026 Arête</span></div>
 </footer>
 
 <div class="mbar"><div><small id="mb-lbl">PER MONTH</small><b id="mb-val"></b></div><button class="btn sm" id="mb-go">See quote</button></div>
@@ -304,3 +262,4 @@
     <div class="btns"><button class="btn ghost" id="m-cancel">Back</button><button class="btn" id="m-confirm" disabled>Confirm</button></div>
   </div>
 </div>
+

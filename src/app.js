@@ -468,7 +468,8 @@ const canConfirm = () => $("c1").checked && $("c2").checked && (state.mode !== "
 function renderTicker() {
   const one = ALL.map(u => `<button class="tk-chip" data-pick="${u.id}"><b>${u.name}</b><span>${fmtP(u, fwd(u, MONTHS[0]))}</span></button>`).join("");
   $("ticker").innerHTML = one + one.replace(/<button /g, '<button tabindex="-1" aria-hidden="true" ');
-  $("n-markets").textContent = ALL.length;
+  const count = $("n-markets");
+  if (count) count.textContent = ALL.length;
 }
 function pickAnywhere(id) {
   const cat = Object.keys(U).find(k => U[k].some(u => u.id === id)); if (!cat) return;
@@ -477,7 +478,7 @@ function pickAnywhere(id) {
 document.addEventListener("click", e => { const b = e.target.closest("[data-pick]"); if (b) pickAnywhere(b.dataset.pick); });
 function pick(id) { state.id = id; state.usage = cur().usage; state.shock = 0; setDefaults(); renderProducts(); render(); }
 $("cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; state.cat = b.dataset.cat; pick(U[state.cat][0].id); });
-$("tiles").addEventListener("click", e => { const b = e.target.closest("[data-id]"); if (b) pick(b.dataset.id); });
+$("tiles").addEventListener("click", e => { const b = e.target.closest("[data-id]"); if (!b) return; pick(b.dataset.id); });
 $("dir-up").addEventListener("click", () => { state.dir = "up"; setDefaults(); render(); });
 $("dir-down").addEventListener("click", () => { state.dir = "down"; setDefaults(); render(); });
 $("mode-band").addEventListener("click", () => { state.mode = "band"; render(); });
@@ -603,6 +604,7 @@ function renderMarkets() {
 // ================= Scroll story =================
 const ST = { W: 600, H: 380, L: 24, R: 16, T: 24, B: 112 };
 function buildStory() {
+  if (!$("story-svg")) return;
   ST.W = innerWidth < 600 ? 420 : 600; ST.small = innerWidth < 600;
   const { W, H, L, R, T, B } = ST, ph = H - T - B, n = 48, cap = 62;
   // Monthly knots, smoothed (Catmull-Rom) with a little noise: two spells above the max price.
@@ -659,7 +661,9 @@ function onScroll() {
     if (!reduce) document.querySelectorAll(".alps .ly").forEach(l => l.style.transform = `translateY(${(Math.min(y, 700) * Number(l.dataset.k)).toFixed(1)}px)`);
     if (document.body.dataset.view !== "home") return;
     if (reduce) { storyProgress(1); document.querySelectorAll("#steps li").forEach(li => li.classList.add("on")); return; }
-    const r = $("story").getBoundingClientRect(), span = r.height - window.innerHeight;
+    const story = $("story");
+    if (!story) return;
+    const r = story.getBoundingClientRect(), span = r.height - window.innerHeight;
     storyProgress(clamp01(-r.top / Math.max(1, span)));
   });
 }
@@ -781,10 +785,11 @@ async function buildAlp(cv, A, small) {
   return {
     R3, scene, cam, WP,
     resize(w, h) { R3.setSize(w, h, false); cam.aspect = w / h; cam.fov = w / h < .8 ? 66 : 48; cam.updateProjectionMatrix(); },
-    update(p, clock, dt) {
+    update(p, clock, dt, pointer) {
       const qv = p * 4, i = Math.min(3, Math.floor(qv)), f = qv - i, e = f * f * (3 - 2 * f);
       camCurve.getPoint(Math.min(1, p), cam.position);
-      cam.position.x += Math.sin(clock * .21) * 14; cam.position.y += Math.sin(clock * .33) * 8;
+      cam.position.x += Math.sin(clock * .21) * 14 + pointer.x * 42;
+      cam.position.y += Math.sin(clock * .33) * 8 + pointer.y * 24;
       cam.position.y = Math.max(cam.position.y, Hs(cam.position.x, cam.position.z) + 180);
       tgt.copy(TG[i]).lerp(TG[i + 1], e); cam.lookAt(tgt); sky.position.copy(cam.position);
       clouds.forEach(c => c.material.uniforms.t.value = clock);
@@ -816,12 +821,24 @@ async function initPeak() {
   new ResizeObserver(fit).observe(cv); fit();
   cv.classList.add("on");
   const cards = [...document.querySelectorAll(".wp")], hero = $("pk-hero"), end = $("pk-end"), hint = $("pk-hint");
+  const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+  PK.pointer = pointer;
+  if (!reduce && innerWidth >= 700 && matchMedia("(pointer: fine)").matches) {
+    peak.addEventListener("pointermove", e => {
+      const r = cv.getBoundingClientRect();
+      pointer.tx = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1));
+      pointer.ty = Math.max(-1, Math.min(1, 1 - (e.clientY - r.top) / r.height * 2));
+    }, { passive: true });
+    peak.addEventListener("pointerleave", () => { pointer.tx = 0; pointer.ty = 0; });
+  }
   let last = performance.now(), clock = 0;
   function frame(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now; clock += dt;
     PK.ps += (PK.p - PK.ps) * Math.min(1, dt * 3.2);
+    pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 2.4);
+    pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 2.4);
     const p = reduce ? 0.12 : PK.ps;
-    A.update(p, clock, dt);
+    A.update(p, clock, dt, pointer);
     if (!reduce) {
       const W = cv.clientWidth, Hh = cv.clientHeight, cl = x => Math.max(0, Math.min(1, x));
       hero.style.opacity = 1 - cl((p - .02) / .08); hero.style.transform = `translateY(calc(-46% - ${(p * 600).toFixed(0)}px))`; hero.style.pointerEvents = p < .08 ? "auto" : "none";

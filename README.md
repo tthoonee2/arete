@@ -1,71 +1,53 @@
-# Arête
+# Arête — name your price
 
-Commodity price protection for businesses: caps, floors and zero-cost collars on exchange benchmarks, settled in cash every month.
+A single-file commodity-protection prototype, now with a shared tested pricing core, a Budget lock journey and a FastAPI quote service. Market curves and volatility inputs are **illustrative**; this is not live market data or an execution venue.
 
-> **Prototype.** Prices are indicative and generated in the browser. Nothing is bought or sold. Not an offer or financial advice.
+## Run the prototype
 
-## What's in the site
-
-| Page | What it does |
-|---|---|
-| Overview | Real-time 3D Alpine terrain with a scroll-driven climb, platform overview, payout explainer |
-| Price | Live quote builder: benchmark, volume, months, limit, cap, paid or zero-cost collar |
-| Markets | 25 benchmarks (ICE, ICE Endex, LME, Platts/Argus-settled swaps) with 12-month curves |
-| Risk desk | Book KPIs, coverage heatmap, mark-to-market, stress test, alerts, CSV export |
-| Basis lab | Fit a supplier price to a benchmark: correlation, R², minimum-variance hedge ratio, basis risk |
-| Developers | REST API reference with a console that runs the pricing engine in the browser |
-| Institutions | White-label widget preview and embed snippet |
-| Trust | Intended operating model, comparison, FAQ |
-
-## Pricing model
-
-- Monthly average-price options, Black-76 with a variance adjustment for averaging.
-- Per-market forward curve with slope and seasonality; volatility term structure (Samuelson effect); quadratic skew in time-scaled log-moneyness.
-- Regional spreads (PSV/THE/PEG vs TTF, diesel Med vs NWE, jet regrade) use a normal (Bachelier) model because they can go negative.
-- Price = mid + bid/ask in volatility points + a fixed ticket fee per month. Zero-cost collars solve for the sold strike on the price grid.
-
-## Repository layout
-
-```
-index.html                    built site (single file, deployable anywhere)
-src/
-  style.css                   design system
-  body.html                   page markup
-  app.js                      pricing engine, UI, 3D scene, platform modules
-  terrain-assets.html         baked terrain (heights + textures) as data URIs
-tools/
-  build.py                    src/ -> index.html
-  terrain/bake_procedural.py  current terrain: procedural + hydraulic erosion
-  terrain/build_real_terrain.py  real Matterhorn from swisstopo (untested, see below)
-  terrain/embed_assets.py     pack baked terrain into src/terrain-assets.html
-.github/workflows/pages.yml   builds and deploys to GitHub Pages on push to main
+```sh
+npm run build
+python3 -m http.server 4173
+# open http://localhost:4173/index.html
 ```
 
-## Run locally
+The build assembles `index.html` from `src/` and `packages/pricing/browser.js`. `index.html` is generated and intentionally ignored. Open `#budget` for Budget lock, or `#price` for the original quote builder.
 
-Open `index.html` in a browser, or:
+## Run the quote API
 
-```bash
-python -m http.server 8000   # then visit http://localhost:8000
+```sh
+pip install -r apps/api/requirements.txt
+uvicorn apps.api.main:app --reload
+# OpenAPI: http://127.0.0.1:8000/docs
 ```
 
-## Deploy
+Endpoints:
 
-Push to `main`, then in **Settings → Pages** set the source to **GitHub Actions**. The workflow rebuilds `index.html` from `src/` and publishes it.
+- `GET /health`
+- `GET /v1/markets`
+- `GET /v1/markets/{market_id}/curve`
+- `POST /v1/quotes` with an `Idempotency-Key` header
 
-## Making the mountain photoreal
+Quote responses carry a curve snapshot ID, model version, curve timestamp, quote expiry and `data_status: illustrative`. Snapshots and idempotency records are process-local and will be lost on restart; use one worker for local development. Set `ARETE_CORS_ORIGINS` to a comma-separated allowlist if a browser client needs cross-origin access.
 
-The current terrain is procedural. For the real Matterhorn, use swisstopo's free data (swissALTI3D elevation + SWISSIMAGE aerial photos):
+## Verify
 
-```bash
-pip install -r tools/terrain/requirements.txt
-python tools/terrain/build_real_terrain.py --out build/terrain
-python tools/terrain/embed_assets.py build/terrain
-python tools/build.py
+```sh
+npm ci
+npm run lint
+npm test                 # pricing properties and golden values
+npm run test:api         # API tests + 200 cross-language golden cases
+npm run build
+npx playwright install chromium
+npm run test:browser     # Budget lock, quote journey, 375px mobile overflow
 ```
 
-`build_real_terrain.py` was written without access to the swisstopo API, so treat it as a starting point. Attribution required: © swisstopo.
+The supplied `ci.yml` runs all of these checks on pull requests and pushes to `main`. Move it to `.github/workflows/ci.yml` to activate it; the current GitHub connection does not have workflow-file permission.
 
-## Licence
+## Prototype boundaries
 
-All rights reserved. No licence is granted to use, copy or distribute this code without permission.
+- Demo sign-in and protection records remain browser-local; production authentication and durable positions are not included.
+- API quote snapshots are in-memory, not Postgres or Redis, and are unsuitable for multi-worker deployment.
+- No live exchange data, invoices, payments, settlement jobs or real terrain data are connected.
+- Black-76 / Bachelier pricing and bill simulations are illustrative and require independent model validation before financial use.
+
+See [architecture](docs/ARCHITECTURE.md) and the [remaining roadmap](docs/ROADMAP.md).
