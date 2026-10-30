@@ -785,10 +785,11 @@ async function buildAlp(cv, A, small) {
   return {
     R3, scene, cam, WP,
     resize(w, h) { R3.setSize(w, h, false); cam.aspect = w / h; cam.fov = w / h < .8 ? 66 : 48; cam.updateProjectionMatrix(); },
-    update(p, clock, dt) {
+    update(p, clock, dt, pointer) {
       const qv = p * 4, i = Math.min(3, Math.floor(qv)), f = qv - i, e = f * f * (3 - 2 * f);
       camCurve.getPoint(Math.min(1, p), cam.position);
-      cam.position.x += Math.sin(clock * .21) * 14; cam.position.y += Math.sin(clock * .33) * 8;
+      cam.position.x += Math.sin(clock * .21) * 14 + pointer.x * 42;
+      cam.position.y += Math.sin(clock * .33) * 8 + pointer.y * 24;
       cam.position.y = Math.max(cam.position.y, Hs(cam.position.x, cam.position.z) + 180);
       tgt.copy(TG[i]).lerp(TG[i + 1], e); cam.lookAt(tgt); sky.position.copy(cam.position);
       clouds.forEach(c => c.material.uniforms.t.value = clock);
@@ -820,12 +821,24 @@ async function initPeak() {
   new ResizeObserver(fit).observe(cv); fit();
   cv.classList.add("on");
   const cards = [...document.querySelectorAll(".wp")], hero = $("pk-hero"), end = $("pk-end"), hint = $("pk-hint");
+  const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+  PK.pointer = pointer;
+  if (!reduce && innerWidth >= 700 && matchMedia("(pointer: fine)").matches) {
+    peak.addEventListener("pointermove", e => {
+      const r = cv.getBoundingClientRect();
+      pointer.tx = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1));
+      pointer.ty = Math.max(-1, Math.min(1, 1 - (e.clientY - r.top) / r.height * 2));
+    }, { passive: true });
+    peak.addEventListener("pointerleave", () => { pointer.tx = 0; pointer.ty = 0; });
+  }
   let last = performance.now(), clock = 0;
   function frame(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now; clock += dt;
     PK.ps += (PK.p - PK.ps) * Math.min(1, dt * 3.2);
+    pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 2.4);
+    pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 2.4);
     const p = reduce ? 0.12 : PK.ps;
-    A.update(p, clock, dt);
+    A.update(p, clock, dt, pointer);
     if (!reduce) {
       const W = cv.clientWidth, Hh = cv.clientHeight, cl = x => Math.max(0, Math.min(1, x));
       hero.style.opacity = 1 - cl((p - .02) / .08); hero.style.transform = `translateY(calc(-46% - ${(p * 600).toFixed(0)}px))`; hero.style.pointerEvents = p < .08 ? "auto" : "none";
