@@ -90,16 +90,14 @@
           <span><i class="lg-bar"></i>Expected price</span>
           <span><i class="lg-range"></i>Likely range</span>
           <span><i class="lg-zone"></i>Where we pay you</span>
-          <span id="lg-owe"><i class="lg-owe"></i>Where you pay us</span>
         </div>
         <label class="switch"><input type="checkbox" id="limit"><span>Cap the cover to pay less</span></label>
       </div>
 
       <div class="step">
-        <h2><span class="n">5</span><span>How do you want to pay?</span></h2>
+        <h2><span class="n">5</span><span>Your upfront premium</span></h2>
         <div class="choice">
-          <button class="opt pay" id="mode-band" aria-pressed="true"><span class="pay-k">Fixed price</span><span class="pay-n" id="pay-band"></span><small id="pay-band-sub"></small></button>
-          <button class="opt pay" id="mode-collar" aria-pressed="false"><span class="pay-k">Nothing today</span><span class="pay-n" id="pay-collar"></span><small id="pay-collar-sub"></small></button>
+          <div class="opt pay"><span class="pay-k">Paid protection</span><span class="pay-n" id="pay-band"></span><small id="pay-band-sub">Pay once upfront. Never owe more.</small></div>
         </div>
       </div>
     </section>
@@ -220,7 +218,7 @@
     <details><summary>Which price do you use?</summary><p>The monthly average of the benchmark shown on each product, such as ICE Brent or LME copper.</p></details>
     <details><summary>My supplier’s price isn’t exactly the benchmark.</summary><p>Most local prices move with a benchmark. Regional spread products cover the gap, for example Italian gas over Dutch TTF.</p></details>
     <details><summary>When do I get paid?</summary><p>After each covered month ends and the average is known.</p></details>
-    <details><summary>Can I end up owing money?</summary><p>Not with a fixed price. With “Nothing today” you pay the difference if prices move the other way.</p></details>
+    <details><summary>Can I end up owing money?</summary><p>No. You pay the full premium upfront. After that, you never pay us more and there are no margin calls.</p></details>
   </div></section>
 </section>
 
@@ -258,8 +256,6 @@
     <div class="warnbox">Demo only. In the live product this step shows the full terms, checks your business and takes payment.</div>
     <label class="check"><input type="checkbox" id="c1">I've read the terms for this protection.</label>
     <label class="check"><input type="checkbox" id="c2">This covers prices my business really pays or receives.</label>
-    <label class="check" id="c3-row"><input type="checkbox" id="c3"><span id="c3-t"></span></label>
     <div class="btns"><button class="btn ghost" id="m-cancel">Back</button><button class="btn" id="m-confirm" disabled>Confirm</button></div>
   </div>
 </div>
-
