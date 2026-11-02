@@ -112,41 +112,25 @@ function probAbove(u, mo, F, K) {
   return Math.min(1, Math.max(0, (optVal(u, mo, F, K - h, "c") - optVal(u, mo, F, K + h, "c")) / (2 * h * df)));
 }
 
-// Full quote for a structure. s = { u, dir, mode, q, ms, K1, K2, Kx, shock }
+// Paid protection only: the premium is due upfront and settlements never create a customer payable.
+// s = { u, dir, q, ms, K1, K2, shock }
 function price(s) {
-  const { u, q, ms } = s, up = s.dir === "up", t = up ? "c" : "p", ot = up ? "p" : "c", m = u.mult;
-  let mid = 0, ask = 0, chance = 0, owe = 0; const vols = [], per = [];
+  const { u, q, ms } = s, up = s.dir === "up", t = up ? "c" : "p", m = u.mult;
+  let mid = 0, ask = 0, chance = 0; const vols = [], per = [];
   ms.forEach(mo => {
     const F = fwd(u, mo) * (1 + (s.shock || 0)), T = (mo.t1 + mo.t2) / 2;
     let a = optVal(u, mo, F, s.K1, t, u.dvol), md = optVal(u, mo, F, s.K1, t);
     if (s.K2 != null) { a -= optVal(u, mo, F, s.K2, t, -u.dvol); md -= optVal(u, mo, F, s.K2, t); }
-    if (s.Kx != null) { a -= optVal(u, mo, F, s.Kx, ot, -u.dvol); md -= optVal(u, mo, F, s.Kx, ot); }
     ask += a * q * m; mid += md * q * m; per.push({ mo, F, cost: a * q * m + TICKET });
     const pa = probAbove(u, mo, F, s.K1); chance += up ? pa : 1 - pa;
-    if (s.Kx != null) { const px = probAbove(u, mo, F, s.Kx); owe += up ? 1 - px : px; }
     vols.push(volAt(u, F, s.K1, T));
   });
   const fee = TICKET * ms.length, total = ask + fee, n = ms.length;
-  return { mid, spread: ask - mid, fee, total, monthly: total / n, chance: chance / n, owe: owe / n, vol1: vols[0], volN: vols[n - 1], per };
+  return { mid, spread: ask - mid, fee, total, monthly: total / n, chance: chance / n, vol1: vols[0], volN: vols[n - 1], per };
 }
-// Zero-cost collar: solve the sold strike continuously for zero net premium.
-function solveCollar(base, ticks, toPx) {
-  // Solve the sold strike continuously. The upfront premium is monotonic between
-  // the outer strike and the protected strike, so bisection avoids grid residuals.
-  const outer = base.dir === "up" ? base.u.lo : base.u.hi;
-  const at = Kx => price({ ...base, Kx });
-  let a = outer, b = base.K1, pa = at(a), pb = at(b);
-  if (pa.total < 0 || pb.total > 0) return null;
-  for (let i = 0; i < 90; i++) {
-    const mid = (a + b) / 2, pm = at(mid);
-    if (pm.total > 0) { a = mid; pa = pm; } else { b = mid; pb = pm; }
-  }
-  const Kx = (a + b) / 2;
-  return { Kx, p: at(Kx) };
-}
-function settle(dir, K1, K2, Kx, x) {
-  if (dir === "up") return Math.max(0, Math.min(x, K2 == null ? Infinity : K2) - K1) - (Kx == null ? 0 : Math.max(Kx - x, 0));
-  return Math.max(0, K1 - Math.max(x, K2 == null ? -Infinity : K2)) - (Kx == null ? 0 : Math.max(x - Kx, 0));
+function settle(dir, K1, K2, x) {
+  if (dir === "up") return Math.max(0, Math.min(x, K2 == null ? Infinity : K2) - K1);
+  return Math.max(0, K1 - Math.max(x, K2 == null ? -Infinity : K2));
 }
 // Seeded sample history (placeholder for ICE settlement data).
 function sampleHistory(u) {
@@ -174,7 +158,7 @@ function billRange(s, samples = 4000) {
       const z = normal(), x = u.model === "normal" ? F + Math.sqrt(v) * z : F * Math.exp(Math.sqrt(v) * z - v / 2);
       const spend = x * q;
       raw += spend;
-      hedged += spend - settle(s.dir, s.K1, s.K2, s.Kx, x) * q;
+      hedged += spend - settle(s.dir, s.K1, s.K2, x) * q;
     });
     unprotected.push(raw); protectedBill.push(hedged);
   }
@@ -184,5 +168,5 @@ function billRange(s, samples = 4000) {
 
 if (typeof module !== "undefined" && module.exports) module.exports = {
   TICKET, QUOTE_SECONDS, R, CCY, CATS, U, ALL, MONTHS, monthList,
-  N, fwd, atmVol, volAt, black, optVal, probAbove, price, solveCollar, settle, billRange, sampleHistory
+  N, fwd, atmVol, volAt, black, optVal, probAbove, price, settle, billRange, sampleHistory
 };

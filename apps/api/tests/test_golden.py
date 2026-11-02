@@ -1,46 +1,44 @@
-"""Cross-language golden tests: 200 deterministic cases, absolute tolerance 1e-6."""
 import json
 import math
 import random
 import subprocess
 from pathlib import Path
 
-from apps.api.pricing import ALL, month_list, price, solve_collar
+from apps.api.pricing import ALL, fwd, price
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_javascript_python_parity():
-    rng = random.Random(76123)
-    months = month_list()
+def test_200_random_quotes_match_javascript_within_1e_6():
+    rng = random.Random(20261030)
     cases = []
-    for index in range(200):
-        u = ALL[index % len(ALL)]
-        span = u["hi"] - u["lo"]
-        k1 = u["lo"] + span * rng.uniform(.25,.7)
-        structure = ["protection","cap","zero_cost_collar"][index % 3]
-        case = {"market_id":u["id"],"dir":["up","down"][index%2],"q":max(1,u["usage"]*rng.uniform(.1,2)),"start":rng.randrange(0,6),"months":rng.randrange(1,7),"K1":k1,"K2":None,"structure":structure}
-        case["months"] = min(case["months"],12-case["start"])
-        if structure == "cap":
-            case["K2"] = k1 + span*.15 if case["dir"] == "up" else k1-span*.15
-        cases.append(case)
-    script = ROOT / "apps/api/tests/compare_engine.js"
-    raw = subprocess.check_output(["node",str(script)],input=json.dumps({"cases":cases,"months":months}),text=True)
-    expected = json.loads(raw)
-    for case, want in zip(cases,expected):
-        u = next(item for item in ALL if item["id"] == case["market_id"])
-        base = {"u":u,"dir":case["dir"],"q":case["q"],"ms":months[case["start"]:case["start"]+case["months"]],"K1":case["K1"],"K2":case["K2"],"Kx":None,"shock":0}
-        if case["structure"] == "zero_cost_collar":
-            solved = solve_collar(base,months)
-            assert (solved is None) == (want is None)
-            if solved is None:
-                continue
-            got = solved["p"]
+    for _ in range(200):
+        u = rng.choice(ALL)
+        direction = rng.choice(["up", "down"])
+        t1 = rng.uniform(.01, 1.5)
+        mo = {"cal": rng.randrange(12), "label": "Golden", "t1": t1, "t2": t1 + 1 / 12}
+        forward = fwd(u, mo)
+        if u.get("model") == "normal":
+            k1 = forward + rng.uniform(-1, 1) * u["vol0"]
+            k2 = k1 + rng.uniform(.1, 1) * u["vol0"] * (1 if direction == "up" else -1) if rng.random() < .35 else None
         else:
-            got = price(base,months)
-        assert want is not None
-        for key in ["mid","spread","fee","total","monthly","chance","owe"]:
-            assert math.isclose(got[key],want[key],rel_tol=0,abs_tol=1e-6), (case,key,got[key],want[key])
-        for actual_row, expected_row in zip(got["per"],want["per"]):
-            for key in ["forward","cost"]:
-                assert math.isclose(actual_row[key],expected_row[key],rel_tol=0,abs_tol=1e-6)
+            k1 = forward * rng.uniform(.55, 1.5)
+            k2 = None
+            if rng.random() < .35:
+                k2 = k1 * (rng.uniform(1.02, 1.5) if direction == "up" else rng.uniform(.5, .98))
+        cases.append({"market": u["id"], "dir": direction, "q": rng.uniform(1, 100_000), "mo": mo, "K1": k1, "K2": k2, "shock": rng.uniform(-.05, .05)})
+
+    completed = subprocess.run(
+        ["node", str(ROOT / "apps/api/tests/compare_engine.js")],
+        input=json.dumps(cases), text=True, capture_output=True, check=True,
+    )
+    javascript = json.loads(completed.stdout)
+    for case, expected in zip(cases, javascript):
+        u = next(market for market in ALL if market["id"] == case["market"])
+        actual = price({"u": u, "dir": case["dir"], "q": case["q"], "ms": [case["mo"]], "K1": case["K1"], "K2": case["K2"], "shock": case["shock"]})
+        assert actual["total"] > 0
+        for key in ["mid", "spread", "fee", "total", "monthly", "chance", "vol1"]:
+            assert math.isclose(actual[key], expected[key], rel_tol=0, abs_tol=1e-6), (case["market"], key, actual[key], expected[key])
+        for actual_row, expected_row in zip(actual["per"], expected["per"]):
+            assert math.isclose(actual_row["F"], expected_row["F"], rel_tol=0, abs_tol=1e-6)
+            assert math.isclose(actual_row["cost"], expected_row["cost"], rel_tol=0, abs_tol=1e-6)

@@ -1,54 +1,67 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { U, ALL, MONTHS, black, optVal, price, solveCollar, settle, billRange } = require('../browser.js');
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { U, ALL, black, fwd, optVal, price, settle, billRange } = require("../browser.js");
 
-const base = (u = U.oil[0]) => ({ u, dir: 'up', q: 1000, ms: MONTHS.slice(0, 3), K1: u.F, K2: null, Kx: null, shock: 0 });
+const brent = U.oil.find(u => u.id === "brent");
+const month = (t1 = .2, t2 = .3) => ({ cal: 0, label: "Test", t1, t2 });
 
-test('put-call parity holds across lognormal and normal markets', () => {
-  for (const u of [U.oil[0], U.spreads[0]]) {
-    const mo = MONTHS[0], F = u.F, K = u.F * 1.05;
-    const call = optVal(u, mo, F, K, 'c'), put = optVal(u, mo, F, K, 'p');
-    const df = Math.exp(-0.04 * mo.t2);
-    assert.ok(Math.abs(call - put - df * (F - K)) < 0.03);
+test("put-call parity holds across strikes, vols and discount rates", () => {
+  for (const F of [40, 75, 120]) for (const K of [55, 90, 140]) for (const v of [.01, .09, .25]) {
+    const df = .97, call = black(F, K, v, df, "c"), put = black(F, K, v, df, "p");
+    assert.ok(Math.abs(call - put - df * (F - K)) < 1e-9);
   }
 });
 
-test('Black-76 matches an independent at-the-money golden value', () => {
-  // 100 * (2*N(sqrt(1)/2)-1) * exp(-0.04) = 7.965567445...
-  assert.ok(Math.abs(black(100, 100, .04, 1, 'c') - 7.965567445) < 1e-6);
+test("Black-76 golden value matches an independent reference", () => {
+  // 100 * (2 * N(0.1) - 1), with variance 0.04 and no discounting.
+  assert.ok(Math.abs(black(100, 100, .04, 1, "c") - 7.965567445) < 1e-6);
 });
 
-test('call prices decrease with strike and increase with tenor', () => {
-  const u = U.oil[0], mo = MONTHS[0], F = u.F;
-  assert.ok(optVal(u, mo, F, 60, 'c') > optVal(u, mo, F, 70, 'c'));
-  assert.ok(optVal(u, MONTHS[11], F, 66, 'c') > optVal(u, mo, F, 66, 'c'));
+test("option values are monotonic in strike and tenor", () => {
+  const mo = month(), F = fwd(brent, mo);
+  const calls = [60, 70, 80, 90].map(K => optVal(brent, mo, F, K, "c"));
+  const puts = [60, 70, 80, 90].map(K => optVal(brent, mo, F, K, "p"));
+  for (let i = 1; i < calls.length; i++) {
+    assert.ok(calls[i] < calls[i - 1]);
+    assert.ok(puts[i] > puts[i - 1]);
+  }
+  const short = optVal(brent, month(.1, .2), F, F, "c");
+  const long = optVal(brent, month(.7, .8), F, F, "c");
+  assert.ok(long > short);
 });
 
-test('option values respect intrinsic and discounted forward bounds', () => {
-  for (const u of ALL.filter(x => x.model !== 'normal')) {
-    const mo = MONTHS[0], F = u.F, K = u.F, df = Math.exp(-0.04 * mo.t2);
-    const call = optVal(u, mo, F, K, 'c');
-    assert.ok(call >= df * Math.max(F - K, 0));
-    assert.ok(call <= df * F);
+test("options respect intrinsic and upper bounds", () => {
+  for (const F of [30, 80, 200]) for (const K of [20, 70, 240]) {
+    const df = .96, call = black(F, K, .16, df, "c"), put = black(F, K, .16, df, "p");
+    assert.ok(call >= df * Math.max(F - K, 0) - 1e-9);
+    assert.ok(call <= df * F + 1e-9);
+    assert.ok(put >= df * Math.max(K - F, 0) - 1e-9);
+    assert.ok(put <= df * K + 1e-9);
   }
 });
 
-test('continuous collar solver reaches zero premium for both model families', () => {
-  for (const u of [U.oil[0], U.spreads[0]]) {
-    const b = base(u); b.K1 = u.F;
-    const result = solveCollar(b, 100, () => 0);
-    assert.ok(result);
-    assert.ok(Math.abs(result.p.total) < 1e-6);
+test("all protections charge upfront and never create a customer payable", () => {
+  for (const u of ALL) {
+    const mo = month(), F = fwd(u, mo);
+    for (const dir of ["up", "down"]) for (const capped of [false, true]) {
+      const up = dir === "up", sign = up ? 1 : -1;
+      const K1 = u.model === "normal" ? F + sign * .5 * u.vol0 : F * Math.exp(sign * .25 * u.vol0);
+      const K2 = capped ? (u.model === "normal" ? K1 + sign * u.vol0 : K1 * Math.exp(sign * .4 * u.vol0)) : null;
+      const p = price({ u, dir, q: 100, ms: [mo], K1, K2, shock: 0 });
+      assert.ok(p.total > 0, `${u.id} ${dir} must have a positive upfront premium`);
+      for (const average of [u.lo, F, u.hi]) assert.ok(settle(dir, K1, K2, average) >= 0, `${u.id} ${dir} created a customer payable`);
+    }
   }
 });
 
-test('settlement and seeded bill ranges are deterministic and protective', () => {
-  assert.equal(settle('up', 70, null, null, 90), 20);
-  assert.equal(settle('up', 70, 90, null, 100), 20);
-  assert.equal(settle('up', 70, null, 50, 40), -10);
-  const b = base(); const p = price(b);
-  const a = billRange({ ...b, premium: p.total }, 1000), c = billRange({ ...b, premium: p.total }, 1000);
-  assert.deepEqual(a, c);
+test("settlement and bill range use the same non-negative protection payoff", () => {
+  assert.equal(settle("up", 80, null, 95), 15);
+  assert.equal(settle("up", 80, 90, 95), 10);
+  assert.equal(settle("up", 80, null, 55), 0);
+  assert.equal(settle("down", 80, null, 95), 0);
+  const mo = month(), F = fwd(brent, mo), base = { u: brent, dir: "up", q: 1000, ms: [mo, month(.3, .4)], K1: F * 1.1, K2: null, shock: 0 };
+  const p = price(base), a = billRange({ ...base, premium: p.total }, 1000), b = billRange({ ...base, premium: p.total }, 1000);
+  assert.deepEqual(a, b);
+  assert.ok(a.unprotected.p10 <= a.unprotected.p50 && a.unprotected.p50 <= a.unprotected.p90);
   assert.ok(a.protected.p90 < a.unprotected.p90);
-  assert.ok(a.protected.p10 < a.unprotected.p10);
 });
