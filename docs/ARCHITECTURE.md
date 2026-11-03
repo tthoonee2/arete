@@ -1,32 +1,35 @@
 # Architecture
 
-## Frontend and pricing
+## Current prototype
 
-`src/` contains the original prototype markup, styling and controller. `tools/build.py` replaces the legacy pricing block with `packages/pricing/browser.js`, injects the Budget lock view, and appends accessibility and Budget lock controllers. The output remains a dependency-free single HTML file.
+The deployable site remains a single static HTML file assembled by `tools/build.py`. UI state, demo sign-in and protections are browser-local. The site executes the shared package in `packages/pricing/browser.js`; the legacy block in `src/app.js` is excluded from the generated bundle.
 
-The shared JavaScript engine owns market definitions, forward curves, Black-76 and Bachelier pricing, monthly average-option approximation, continuous zero-cost collar solving, settlement and seeded bill-range simulation. `packages/pricing/markets.json` is the API's shared market-definition source.
+## Pricing
+
+- Pure JavaScript functions for Black-76, Bachelier, forwards, volatility, probability, non-negative settlement and bill-range simulation.
+- Paid protection only: every quote has a positive upfront premium, with no zero-cost structures, later customer charges or margin calls.
+- Pure Python counterpart in `apps/api/pricing.py` with no framework or I/O dependencies.
+- Shared market constants in `packages/pricing/markets.json`.
+- High-precision normal CDF implemented consistently in both languages.
+- Golden tests compare 200 deterministic randomized quotes within `1e-6`.
+
+Every API quote carries `snapshot_id`, `model_version`, `curve_as_of` and `expires_at`. Market curves are explicitly marked `illustrative`. The API enforces strip bounds, strike ordering, positive lognormal strikes and per-market volume limits. Quote writes require an idempotency key.
 
 ## API
 
-`apps/api/pricing.py` mirrors the JavaScript calculations. The golden suite compares both implementations across 200 deterministic cases at an absolute tolerance of `1e-6`.
+FastAPI exposes versioned REST routes and generates OpenAPI from code:
 
-`apps/api/main.py` provides validated FastAPI endpoints. Quotes include model and curve provenance and expire after 60 seconds. An idempotency key replays the original quote for an identical request and returns HTTP 409 if the key is reused with different inputs.
+- `GET /v1/markets`
+- `GET /v1/markets/{id}/curve`
+- `POST /v1/quotes`
 
-The current stores are deliberately small, process-local prototype components:
+Snapshots and idempotency records are process-local in this prototype. Production requires Postgres or another durable shared store, real identity, organisation roles, live licensed curves and a hosted secret store.
 
-- No production authentication or tenant isolation.
-- No durable quote, position or idempotency storage.
-- No distributed locking, rate limiting or background workers.
-- No live curve ingestion. All responses identify the data as illustrative.
+## Frontend
 
-## Accessibility and responsive UI
+Budget lock is a separate markup, controller and style component wired by the existing hash router. It prices paid protection with the same shared package as the quote builder, then transfers the selected market, budget price, volume and period into that builder. Responsive styles preserve 44px coarse-pointer targets, keyboard sliders, reduced motion, visible focus and printable quote/results layouts.
 
-The enhancement layer adds numeric slider ARIA state, modal focus containment, keyboard Escape handling, visible focus styles, coarse-pointer target sizing, reduced-motion support, improved contrast, mobile layouts and print output. Browser journeys verify the main Budget lock and quote paths, including a 375px viewport overflow check.
+## Quality gates
 
-## Delivery
+GitHub Actions runs syntax checks, JavaScript unit tests, Python/API tests, a production build and Chromium journey tests. Browser tests cover the main place-protection flow and Budget lock on desktop and mobile.
 
-GitHub Actions runs syntax checks, JavaScript tests, Python/API tests, the static build and Chromium browser journeys. GitHub Pages can build the static artifact with `python3 tools/build.py` and publish the repository root; generated `index.html` is not committed.
-
-## CI configuration
-
-The verified workflow configuration is supplied with this change as `ci.yml` in the repository root until the connected GitHub account grants workflow-file permission. Move it to `.github/workflows/ci.yml` to enable it.

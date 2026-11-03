@@ -9,12 +9,17 @@ test.beforeEach(async ({ page }) => {
 test("budget lock calculates a range and transfers to the quote builder", async ({ page }) => {
   await page.goto("/#budget");
   await expect(page.getByRole("heading", { name: "Turn a budget into a ceiling." })).toBeVisible();
+  await expect(page.locator('footer a[href="#budget"]')).toHaveCount(1);
   await page.locator("#budget-market").selectOption("diesel");
   await page.locator("#budget-price").fill("0.650");
   await page.locator("#budget-volume").fill("200000");
   await page.locator("#budget-months").selectOption("6");
+  await expect(page.locator('input[name="structure"]')).toHaveCount(0);
+  await expect(page.locator("#budget-form")).not.toContainText("No upfront premium");
   await page.getByRole("button", { name: "Calculate budget lock" }).click();
   await expect(page.locator("#budget-output")).toBeVisible();
+  await expect(page.locator("#budget-cost-label")).toHaveText("UPFRONT PREMIUM");
+  await expect(page.locator("#budget-cost")).not.toHaveText("Free");
   await expect(page.locator("#budget-result-title")).toHaveText("Diesel & heating oil");
   await expect(page.locator(".budget-chart-row")).toHaveCount(2);
   await expect(page.locator("#budget-chance")).toContainText("%");
@@ -27,6 +32,10 @@ test("budget lock calculates a range and transfers to the quote builder", async 
 test("main journey places a protection and shows it in the risk desk", async ({ page }) => {
   await page.goto("/#price");
   await page.locator('.tile[data-id="diesel"]').click();
+  await expect(page.locator("#mode-collar")).toHaveCount(0);
+  await expect(page.locator("#big-lbl")).toContainText("upfront premium");
+  await expect(page.locator("#pay-band-sub")).toHaveText("Pay once upfront. Never owe more.");
+  await expect(page.locator("#promise")).toHaveText("Premium paid upfront. You never owe more.");
   await page.locator("#usage").fill("250000");
   const handle = page.locator('.handle[data-k="k1"]');
   const before = await handle.getAttribute("aria-valuenow");
@@ -40,6 +49,9 @@ test("main journey places a protection and shows it in the risk desk", async ({ 
   await page.locator("#l-pass").fill("prototype-pass");
   await page.locator("#l-go").click();
   await expect(page.locator("#overlay")).toBeVisible();
+  await expect(page.locator("#m-summary")).toContainText("Upfront premium:");
+  await expect(page.locator("#m-summary")).toContainText("No later charges.");
+  await expect(page.locator("#c3-row")).toHaveCount(0);
   await page.locator("#c1").check();
   await page.locator("#c2").check();
   await page.locator("#m-confirm").click();

@@ -1,53 +1,107 @@
-# Arête — name your price
+# Arête
 
-A single-file commodity-protection prototype, now with a shared tested pricing core, a Budget lock journey and a FastAPI quote service. Market curves and volatility inputs are **illustrative**; this is not live market data or an execution venue.
+Commodity price protection for businesses: paid caps and floors on exchange benchmarks, with the full premium due upfront and cash settlement every month.
 
-## Run the prototype
+> **Prototype.** Prices and curves are illustrative. Nothing is bought or sold. Not an offer or financial advice. The static site still uses browser-local demo accounts and positions; production auth and persistence are not included in this pass.
 
-```sh
-npm run build
-python3 -m http.server 4173
-# open http://localhost:4173/index.html
+## Product pages
+
+| Page | What it does |
+|---|---|
+| Overview | Alpine terrain, platform overview and payout explainer |
+| Price | Paid-protection quote builder with 25 markets, volume, month range, limit and optional payout cap |
+| Budget lock | Cost and payout chance for a budgeted price, plus an 80% bill-range chart |
+| Markets | Forward curves for 25 exchange benchmarks |
+| Risk desk | Book KPIs, coverage, mark-to-market, stress test, alerts and CSV export |
+| Basis lab | Correlation, R², minimum-variance hedge ratio and residual basis risk |
+| Developers | API reference and an in-browser console |
+| Institutions | White-label widget preview connected to the quote flow |
+| Trust | Intended operating model, comparison and FAQ |
+
+## Engineering layout
+
+```text
+index.html                       generated single-file site
+src/
+  body.html                      existing page markup
+  budget.html                    Budget lock component
+  app.js                         legacy UI, charts, desk and 3D scene
+  budget.js                      Budget lock controller
+  accessibility.js               keyboard, slider and dialog improvements
+  style.css                      original design system
+  improvements.css               responsive, print and Budget lock styles
+  terrain-assets.html            baked terrain data
+packages/pricing/
+  browser.js                     shared pure JavaScript pricing engine
+  markets.json                   shared market definitions for JS and Python
+  test/pricing.test.js           parity, bounds, monotonicity and upfront-premium tests
+apps/api/
+  main.py                        FastAPI markets, curves and quotes
+  pricing.py                     pure Python pricing counterpart
+  tests/                         API tests and 200-case JS golden suite
+tools/build.py                   assembles index.html from source modules
+tests/journey.spec.js            browser journey and mobile checks
+.github/workflows/ci.yml         lint, unit, API, build and browser CI
+.github/workflows/pages.yml      builds and deploys the static site
 ```
 
-The build assembles `index.html` from `src/` and `packages/pricing/browser.js`. `index.html` is generated and intentionally ignored. Open `#budget` for Budget lock, or `#price` for the original quote builder.
+The build removes the legacy pricing block from the executed bundle and uses `packages/pricing/browser.js` as the single browser implementation. Both engines use the same high-precision normal CDF and support paid protection only. Every quote requires a positive upfront premium; zero-cost structures and later customer payments are not supported. API quotes include a curve snapshot ID, model version, curve timestamp and server expiry.
 
-## Run the quote API
+## Run the site
 
-```sh
-pip install -r apps/api/requirements.txt
+```bash
+python tools/build.py
+python -m http.server 8000
+# open http://localhost:8000
+```
+
+Opening the generated `index.html` directly also works. GitHub Pages rebuilds it during deployment, so a generated local copy does not need to be committed with every source change.
+
+## Run the API
+
+```bash
+python -m pip install -r apps/api/requirements.txt
 uvicorn apps.api.main:app --reload
-# OpenAPI: http://127.0.0.1:8000/docs
+# OpenAPI: http://localhost:8000/docs (if using port 8000)
+```
+
+Example:
+
+```bash
+curl -X POST http://localhost:8000/v1/quotes \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: example-quote-001' \
+  -d '{"market":"brent","side":"ceiling","structure":"paid","limit":72.5,"cap":88,"volume_per_month":8000,"start_month":1,"months":6}'
 ```
 
 Endpoints:
 
 - `GET /health`
 - `GET /v1/markets`
-- `GET /v1/markets/{market_id}/curve`
-- `POST /v1/quotes` with an `Idempotency-Key` header
+- `GET /v1/markets/{id}/curve`
+- `POST /v1/quotes` (requires `Idempotency-Key`)
 
-Quote responses carry a curve snapshot ID, model version, curve timestamp, quote expiry and `data_status: illustrative`. Snapshots and idempotency records are process-local and will be lost on restart; use one worker for local development. Set `ARETE_CORS_ORIGINS` to a comma-separated allowlist if a browser client needs cross-origin access.
+The in-memory idempotency and snapshot stores are suitable for local development only. Replace them with durable shared storage before running multiple production workers.
 
-## Verify
+## Verification
 
-```sh
-npm ci
+```bash
+npm install
 npm run lint
-npm test                 # pricing properties and golden values
-npm run test:api         # API tests + 200 cross-language golden cases
+npm test
+npm run test:api
 npm run build
 npx playwright install chromium
-npm run test:browser     # Budget lock, quote journey, 375px mobile overflow
+npm run test:browser
 ```
 
-The supplied `ci.yml` runs all of these checks on pull requests and pushes to `main`. Move it to `.github/workflows/ci.yml` to activate it; the current GitHub connection does not have workflow-file permission.
+The browser tests cover Budget lock calculation and quote transfer, the main price-to-protection-to-risk-desk journey, keyboard slider attributes, and a 375px mobile overflow check.
 
-## Prototype boundaries
+## Terrain
 
-- Demo sign-in and protection records remain browser-local; production authentication and durable positions are not included.
-- API quote snapshots are in-memory, not Postgres or Redis, and are unsuitable for multi-worker deployment.
-- No live exchange data, invoices, payments, settlement jobs or real terrain data are connected.
-- Black-76 / Bachelier pricing and bill simulations are illustrative and require independent model validation before financial use.
+The current terrain is procedural. The swisstopo-based scripts remain under `tools/terrain/`; real-terrain integration was outside this pass. Attribution required for swisstopo data: © swisstopo.
 
-See [architecture](docs/ARCHITECTURE.md) and the [remaining roadmap](docs/ROADMAP.md).
+## Licence
+
+All rights reserved. No licence is granted to use, copy or distribute this code without permission.
+

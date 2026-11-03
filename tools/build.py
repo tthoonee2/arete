@@ -38,6 +38,7 @@ body = read("src/body.html")
 body = body.replace(
     '<a href="#price">Price</a>',
     '<a href="#price">Price</a><a href="#budget">Budget lock</a>',
+    1,
 )
 body = body.replace(
     '<section class="view" data-view="markets" id="markets" hidden>',
