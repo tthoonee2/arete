@@ -1,8 +1,10 @@
 """Assemble the deployable single-file site from source modules."""
 from pathlib import Path
+from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
+MOUNTAIN_SOURCE = "https://www.kimi.com/apiv2-files/sign-obj/kimi-fs%2Ffiles%2Fblob%2Fb2c7d112d869f28ee18ba3106e40da0418f35a051df08e5917806dbc963e9a11?filename=arete-mountain-assets.html&sig=pUjea2MRjBg8oceLg6RjeUryb7f8VhfS86Z5mJFUlMI=&t=o"
 
 HEAD = """<!doctype html>
 <html lang="en" data-theme="light">
@@ -21,6 +23,15 @@ HEAD = """<!doctype html>
 
 def read(path: str) -> str:
     return (ROOT / path).read_text()
+
+
+def mountain_asset() -> str:
+    """Read the local generated asset, or retrieve the public build-time source."""
+    path = SRC / "mountain-assets.html"
+    if path.exists():
+        return path.read_text()
+    with urlopen(MOUNTAIN_SOURCE, timeout=90) as response:
+        return response.read().decode("utf-8")
 
 
 def script(source: str) -> str:
@@ -49,16 +60,16 @@ body = body.replace(
 styles = read("src/style.css") + "\n" + read("src/improvements.css")
 javascript = "\n".join([
     read("packages/pricing/browser.js"),
+    "if (typeof THREE !== \"undefined\") {\n" + read("src/vendor/GLTFLoader.js") + "\n}",
     app_js,
     read("src/accessibility.js"),
     read("src/budget.js"),
 ])
 html = (
     HEAD + styles + "\n</style>\n</head>\n<body>\n" + body + "\n"
-    + read("src/terrain-assets.html") + "\n"
+    + mountain_asset() + "\n"
     + '<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n<script>'
     + script(javascript) + "</script>\n</body>\n</html>\n"
 )
 (ROOT / "index.html").write_text(html)
 print(f"index.html written, {len(html) // 1024} KB")
-
