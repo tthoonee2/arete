@@ -4,6 +4,7 @@ test.use({
   viewport: { width: 1440, height: 1000 },
   reducedMotion: "no-preference",
   launchOptions: {
+    executablePath: process.env.CHROMIUM_PATH || undefined,
     args: ["--use-angle=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"],
   },
 });
@@ -18,6 +19,11 @@ test("desktop runs ambient, pointer and scroll-driven 3D animation", async ({ pa
   await expect(page.locator("#peak-cv")).toHaveClass("on");
   await expect(page.locator("#peak")).not.toHaveClass(/static/);
   expect(await page.evaluate(() => PK.run)).toBe(true);
+  expect(await page.evaluate(() => PK.asset)).toBe("tripo-alpine-horn");
+  expect(await page.evaluate(() => PK.triangles)).toBe(23262);
+  const stats = await page.evaluate(() => PK.stats());
+  expect(stats.triangles).toBeLessThan(30000);
+  expect(stats.calls).toBeLessThan(40);
 
   await page.mouse.move(240, 420);
   await page.waitForFunction(() => Math.abs(PK.pointer.x) > 0.05);

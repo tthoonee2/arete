@@ -30,7 +30,8 @@ src/
   accessibility.js               keyboard, slider and dialog improvements
   style.css                      original design system
   improvements.css               responsive, print and Budget lock styles
-  terrain-assets.html            baked terrain data
+  mountain-assets.html           local generated mountain cache (not committed)
+  vendor/GLTFLoader.js           local Three.js r128 loader cache (not committed)
 packages/pricing/
   browser.js                     shared pure JavaScript pricing engine
   markets.json                   shared market definitions for JS and Python
@@ -97,11 +98,10 @@ npm run test:browser
 
 The browser tests cover Budget lock calculation and quote transfer, the main price-to-protection-to-risk-desk journey, keyboard slider attributes, and a 375px mobile overflow check.
 
-## Terrain
+## Mountain scene
 
-The current terrain is procedural. The swisstopo-based scripts remain under `tools/terrain/`; real-terrain integration was outside this pass. Attribution required for swisstopo data: © swisstopo.
+The landing page renders a 23,262-triangle alpine horn generated with Tripo API and embedded as a GLB during the build. `src/mountain-assets.html` and `src/vendor/GLTFLoader.js` are local caches; when either is absent, the builder retrieves the public mountain source or the pinned Three.js r128 loader source recorded in `tools/build.py`. The deployed HTML is self-contained and makes no mountain model or loader request. A sampled 256×256 height grid aligns camera collision and waypoints with the model. World-space granite/snow shading, clouds, snow particles, ambient motion, scroll choreography and fine-pointer parallax run in Three.js; no mountain textures are downloaded. The scene retains a static fallback for reduced motion or unavailable WebGL.
 
 ## Licence
 
 All rights reserved. No licence is granted to use, copy or distribute this code without permission.
-

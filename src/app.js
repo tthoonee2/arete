@@ -137,6 +137,8 @@ function sampleHistory(u) {
   return lv.map(v => Math.exp(v + shift));
 }
 // ---------- PRICING END ----------
+let arSeed = 0xA57E2026;
+function seededRandom() { arSeed |= 0; arSeed = arSeed + 0x6D2B79F5 | 0; let t = Math.imul(arSeed ^ arSeed >>> 15, 1 | arSeed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -492,7 +494,7 @@ $("handles").addEventListener("keydown", e => {
 new ResizeObserver(() => { if (window._lastQuote) renderCanvas(window._lastQuote); }).observe($("canvas"));
 $("limit").addEventListener("change", e => { state.limit = e.target.checked; if (state.limit) { setK("k1", state.k1); } render(); });
 $("buy").addEventListener("click", () => {
-  if (Date.now() >= state.expires) { state.shock = (Math.random() - 0.5) * 0.008; render(); return; }
+  if (Date.now() >= state.expires) { state.shock = (seededRandom() - 0.5) * 0.008; render(); return; }
   if (!state.user) { state.pendingBuy = true; openLogin("signin", "Sign in to continue. Your price stays the same."); return; }
   openConfirm();
 });
@@ -630,24 +632,24 @@ let lastSmall = innerWidth < 600;
 window.addEventListener("resize", () => { const sm = innerWidth < 600; if (sm !== lastSmall) { lastSmall = sm; buildStory(); } onScroll(); });
 
 
-// ================= Hyper-real alp: eroded terrain + baked textures, sea of clouds, shadows =================
+// ================= Generated alpine horn + procedural rock/snow, clouds and shadows =================
 async function buildAlp(cv, A, small) {
-  // Heights: zlib-compressed uint16 grid, decoded in the browser
+  // Sampled heights keep camera collision and waypoint placement aligned to the GLB.
   const bin = Uint8Array.from(atob(A.h.b64), c => c.charCodeAt(0));
   const raw = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate"))).arrayBuffer();
-  const q = new Uint16Array(raw), NH = A.h.n, S = A.h.size, HM = A.h.hmax / 65535;
+  const q = new Uint16Array(raw), NH = A.h.n, HM = A.height / 65535;
   const Hs = (x, z) => {
-    const fx = Math.min(NH - 1.001, Math.max(0, (x + S / 2) / S * (NH - 1))), fz = Math.min(NH - 1.001, Math.max(0, (z + S / 2) / S * (NH - 1)));
+    if (x < A.h.minX || x > A.h.maxX || z < A.h.minZ || z > A.h.maxZ) return 0;
+    const fx = Math.min(NH - 1.001, Math.max(0, (x - A.h.minX) / (A.h.maxX - A.h.minX) * (NH - 1)));
+    const fz = Math.min(NH - 1.001, Math.max(0, (z - A.h.minZ) / (A.h.maxZ - A.h.minZ) * (NH - 1)));
     const xi = fx | 0, zi = fz | 0, tx = fx - xi, tz = fz - zi, i = zi * NH + xi;
     return HM * ((q[i] * (1 - tx) + q[i + 1] * tx) * (1 - tz) + (q[i + NH] * (1 - tx) + q[i + NH + 1] * tx) * tz);
   };
-  let top = { v: 0, i: 0 };
-  for (let zi = NH * .3 | 0; zi < NH * .7; zi++) for (let xi = NH * .3 | 0; xi < NH * .7; xi++) { const v = q[zi * NH + xi]; if (v > top.v) top = { v, i: zi * NH + xi }; }
-  const TOPX = (top.i % NH) / (NH - 1) * S - S / 2, TOPZ = Math.floor(top.i / NH) / (NH - 1) * S - S / 2, TOPY = top.v * HM;
+  const TOPX = 0, TOPZ = 0, TOPY = A.height;
 
   const R3 = new THREE.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: "high-performance" });
   R3.setPixelRatio(Math.min(devicePixelRatio, small ? 1.5 : 1.75));
-  R3.outputEncoding = THREE.sRGBEncoding; R3.toneMapping = THREE.ACESFilmicToneMapping; R3.toneMappingExposure = 1.06;
+  R3.outputEncoding = THREE.sRGBEncoding; R3.toneMapping = THREE.ACESFilmicToneMapping; R3.toneMappingExposure = 1.02;
   R3.shadowMap.enabled = true; R3.shadowMap.type = THREE.PCFSoftShadowMap; R3.shadowMap.autoUpdate = false;
   const scene = new THREE.Scene(), HOR = new THREE.Color(0xcfdde8);
   scene.fog = new THREE.FogExp2(HOR, 0.000030);
@@ -661,27 +663,45 @@ async function buildAlp(cv, A, small) {
     fragmentShader: "uniform vec3 top; uniform vec3 hor; uniform vec3 sun; varying vec3 vP; void main(){ float h = max(vP.y, 0.0); vec3 c = mix(hor, top, pow(h, 0.45)); float s = max(dot(normalize(vP), sun), 0.0); c += vec3(1.0, 0.97, 0.9) * smoothstep(0.9995, 0.9998, s) * 2.0 + vec3(1.0, 0.92, 0.8) * pow(s, 12.0) * 0.25; gl_FragColor = vec4(c, 1.0); }"
   }));
   scene.add(sky);
-  scene.add(new THREE.HemisphereLight(0xcfe0f2, 0x5a5850, 0.38));
-  const sunL = new THREE.DirectionalLight(0xfff0dc, 2.9);
+  scene.add(new THREE.HemisphereLight(0xcfe0f2, 0x5a5850, 0.48));
+  const sunL = new THREE.DirectionalLight(0xfff0dc, 2.4);
   sunL.position.copy(SUN).multiplyScalar(9000); sunL.castShadow = true;
   const sc = sunL.shadow.camera; sc.left = -6200; sc.right = 6200; sc.top = 6200; sc.bottom = -6200; sc.near = 100; sc.far = 22000;
   sunL.shadow.mapSize.set(small ? 2048 : 4096, small ? 2048 : 4096); sunL.shadow.bias = -0.0004; sunL.shadow.normalBias = 6;
   scene.add(sunL, sunL.target);
 
-  // Terrain
-  const seg = small ? 383 : 767, g = new THREE.PlaneGeometry(S, S, seg, seg); g.rotateX(-Math.PI / 2);
-  const P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, Hs(P.getX(i), P.getZ(i)));
-  g.computeVertexNormals();
-  const TL = new THREE.TextureLoader(), aniso = R3.capabilities.getMaxAnisotropy();
-  const tex = (src, srgb, rep) => { const t = TL.load(src); if (srgb) t.encoding = THREE.sRGBEncoding; t.anisotropy = aniso; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; } return t; };
-  const mat = new THREE.MeshStandardMaterial({ map: tex(A.albedo, true), normalMap: tex(A.normal), normalMapType: THREE.ObjectSpaceNormalMap, roughness: .92, metalness: 0 });
-  const detail = tex(A.detail, false, true);
+  // Tripo-generated alpine geometry with a world-space granite and snow material.
+  const modelBin = Uint8Array.from(atob(A.glb), c => c.charCodeAt(0));
+  const gltf = await new Promise((resolve, reject) => new THREE.GLTFLoader().parse(modelBin.buffer, "", resolve, reject));
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .91, metalness: 0 });
   mat.onBeforeCompile = sh => {
-    sh.uniforms.detail = { value: detail };
-    sh.fragmentShader = "uniform sampler2D detail;\n" + sh.fragmentShader.replace("#include <map_fragment>",
-      "#include <map_fragment>\n float dd = texture2D(detail, vUv * 140.0).r * 0.55 + texture2D(detail, vUv * 900.0).r * 0.45; diffuseColor.rgb *= 0.8 + 0.4 * dd;");
+    sh.vertexShader = "varying vec3 vWorldPos; varying vec3 vWorldNormal;\n" + sh.vertexShader.replace("#include <worldpos_vertex>",
+      "#include <worldpos_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWorldNormal = inverseTransformDirection(transformedNormal, viewMatrix);");
+    sh.fragmentShader = `varying vec3 vWorldPos; varying vec3 vWorldNormal;
+      float mh(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+      float mn(vec3 p) {
+        vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(mh(i), mh(i + vec3(1,0,0)), f.x), mix(mh(i + vec3(0,1,0)), mh(i + vec3(1,1,0)), f.x), f.y),
+          mix(mix(mh(i + vec3(0,0,1)), mh(i + vec3(1,0,1)), f.x), mix(mh(i + vec3(0,1,1)), mh(i + vec3(1,1,1)), f.x), f.y), f.z);
+      }
+    ` + sh.fragmentShader.replace("#include <color_fragment>", `#include <color_fragment>
+      float broad = mn(vWorldPos * 0.0018);
+      float grain = mn(vWorldPos * 0.017) * 0.6 + mn(vWorldPos * 0.071) * 0.4;
+      float strata = sin(vWorldPos.y * 0.045 + broad * 7.0) * 0.5 + 0.5;
+      vec3 rock = mix(vec3(0.11, 0.13, 0.15), vec3(0.34, 0.35, 0.35), broad * 0.65 + grain * 0.35);
+      rock *= 0.82 + strata * 0.24;
+      float snowAltitude = smoothstep(1550.0, 2750.0, vWorldPos.y + (broad - 0.5) * 850.0);
+      float snowSlope = smoothstep(0.42, 0.78, vWorldNormal.y + (grain - 0.5) * 0.16);
+      float snow = snowAltitude * snowSlope;
+      vec3 snowColor = mix(vec3(0.70, 0.77, 0.83), vec3(0.94, 0.96, 0.97), grain * 0.55 + 0.35);
+      diffuseColor.rgb = mix(rock, snowColor, snow);
+    `);
   };
-  const terrain = new THREE.Mesh(g, mat); terrain.castShadow = terrain.receiveShadow = true; scene.add(terrain);
+  const mountain = gltf.scene;
+  mountain.scale.fromArray(A.scale); mountain.position.fromArray(A.position);
+  mountain.traverse(o => { if (o.isMesh) { o.material = mat; o.castShadow = o.receiveShadow = true; } });
+  scene.add(mountain);
+  PK.asset = "tripo-alpine-horn"; PK.triangles = A.triangles;
 
   // Sea of clouds: two procedural layers drifting with the wind
   const CY = 1150, clouds = [];
@@ -709,18 +729,18 @@ async function buildAlp(cv, A, small) {
   });
   // Wisps around the horn
   const cloudTex = () => { const c = document.createElement("canvas"); c.width = 256; c.height = 128; const x = c.getContext("2d");
-    for (let i = 0; i < 18; i++) { const cx = 64 + Math.random() * 128, cy = 56 + Math.random() * 18, rr = Math.min(16 + Math.random() * 40, cx - 2, 254 - cx, cy - 2, 126 - cy), gr = x.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    for (let i = 0; i < 18; i++) { const cx = 64 + seededRandom() * 128, cy = 56 + seededRandom() * 18, rr = Math.min(16 + seededRandom() * 40, cx - 2, 254 - cx, cy - 2, 126 - cy), gr = x.createRadialGradient(cx, cy, 0, cx, cy, rr);
       gr.addColorStop(0, "rgba(255,255,255,.7)"); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 256, 128); }
     const tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding; return tx; };
   const wt = [cloudTex(), cloudTex(), cloudTex()], wisps = [];
   for (let i = 0; i < (small ? 10 : 18); i++) {
-    const a = Math.random() * Math.PI * 2, r = 900 + Math.random() * 2600, m = new THREE.Sprite(new THREE.SpriteMaterial({ map: wt[i % 3], transparent: true, depthWrite: false, opacity: .35 + Math.random() * .3 }));
-    m.position.set(TOPX + Math.cos(a) * r, 1700 + Math.random() * 1300, TOPZ + Math.sin(a) * r); const w = 700 + Math.random() * 900; m.scale.set(w, w * .4, 1); m.userData.s = 18 + Math.random() * 20; scene.add(m); wisps.push(m);
+    const a = seededRandom() * Math.PI * 2, r = 900 + seededRandom() * 2600, m = new THREE.Sprite(new THREE.SpriteMaterial({ map: wt[i % 3], transparent: true, depthWrite: false, opacity: .35 + seededRandom() * .3 }));
+    m.position.set(TOPX + Math.cos(a) * r, 1700 + seededRandom() * 1300, TOPZ + Math.sin(a) * r); const w = 700 + seededRandom() * 900; m.scale.set(w, w * .4, 1); m.userData.s = 18 + seededRandom() * 20; scene.add(m); wisps.push(m);
   }
   // Snow plume blown off the summit
   const ND = small ? 700 : 1600, sp = new Float32Array(ND * 3), sv = new Float32Array(ND);
-  const spawn = i => { const a = Math.random() * Math.PI * 2, rr = Math.random() * 90; sp[i * 3] = TOPX + Math.cos(a) * rr; sp[i * 3 + 2] = TOPZ + Math.sin(a) * rr; sp[i * 3 + 1] = TOPY - 70 + Math.random() * 80; sv[i] = 90 + Math.random() * 160; };
-  for (let i = 0; i < ND; i++) { spawn(i); sp[i * 3] += Math.random() * 900; }
+  const spawn = i => { const a = seededRandom() * Math.PI * 2, rr = seededRandom() * 90; sp[i * 3] = TOPX + Math.cos(a) * rr; sp[i * 3 + 2] = TOPZ + Math.sin(a) * rr; sp[i * 3 + 1] = TOPY - 70 + seededRandom() * 80; sv[i] = 90 + seededRandom() * 160; };
+  for (let i = 0; i < ND; i++) { spawn(i); sp[i * 3] += seededRandom() * 900; }
   const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
   const dot = (() => { const c = document.createElement("canvas"); c.width = c.height = 32; const x = c.getContext("2d"), gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, "rgba(255,255,255,.9)"); gr.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
   scene.add(new THREE.Points(dg, new THREE.PointsMaterial({ size: 9, map: dot, transparent: true, opacity: .55, depthWrite: false })));
@@ -740,6 +760,7 @@ async function buildAlp(cv, A, small) {
   const TG = [V(0, TOPY * .62, 0), WP[0].clone().lerp(TOPV, .35), WP[1].clone().lerp(TOPV, .35), WP[2].clone().lerp(TOPV, .3), V(600, TOPY - 250, -1500)];
   const tgt = new THREE.Vector3(), tmp = new THREE.Vector3();
   R3.shadowMap.needsUpdate = true;
+  PK.stats = () => ({ calls: R3.info.render.calls, triangles: R3.info.render.triangles, geometries: R3.info.memory.geometries, textures: R3.info.memory.textures });
   return {
     R3, scene, cam, WP,
     resize(w, h) { R3.setSize(w, h, false); cam.aspect = w / h; cam.fov = w / h < .8 ? 66 : 48; cam.updateProjectionMatrix(); },
@@ -765,7 +786,7 @@ const PK = { p: 0, ps: 0, run: false, ready: false };
 async function initPeak() {
   const peak = $("peak"), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let gl = null; try { gl = document.createElement("canvas").getContext("webgl"); } catch (e) {}
-  const can3d = typeof THREE !== "undefined" && !!gl && "DecompressionStream" in window && typeof PK_ASSETS !== "undefined";
+  const can3d = typeof THREE !== "undefined" && !!gl && "DecompressionStream" in window && typeof PK_MOUNTAIN !== "undefined";
   if (!can3d || reduce) {
     peak.classList.add("static"); if (!can3d) peak.classList.add("no3d");
     const row = document.createElement("div"); row.className = "wps-row"; peak.querySelectorAll(".wp").forEach(w => row.appendChild(w)); peak.querySelector(".peak-pin").appendChild(row);
@@ -773,7 +794,7 @@ async function initPeak() {
   }
   const small = innerWidth < 700, cv = $("peak-cv");
   let A;
-  try { A = await buildAlp(cv, PK_ASSETS, small); }
+  try { A = await buildAlp(cv, PK_MOUNTAIN, small); }
   catch (e) { peak.classList.add("static", "no3d"); return; }
   const fit = () => { if (cv.clientWidth && cv.clientHeight) A.resize(cv.clientWidth, cv.clientHeight); };
   new ResizeObserver(fit).observe(cv); fit();
@@ -988,12 +1009,12 @@ function apiHandle(e, body) {
     const base = { u, dir, q: Number(body.volume_per_month) || u.usage, ms, K1: Number(body.limit), K2: body.cap == null ? null : Number(body.cap), shock: 0 };
     if (!(base.K1 > (u.model === "normal" ? -1e9 : 0))) return { error: { type: "invalid_request", message: "limit must be a number" } };
     const p = price(base);
-    return { id: "qt_" + Math.random().toString(36).slice(2, 12), object: "quote", market: u.id, side: body.side, structure: "paid", limit: base.K1, cap: base.K2, payment_timing: "upfront",
+    return { id: "qt_" + seededRandom().toString(36).slice(2, 12), object: "quote", market: u.id, side: body.side, structure: "paid", limit: base.K1, cap: base.K2, payment_timing: "upfront",
       volume_per_month: base.q, currency: { "$": "USD", "€": "EUR", "£": "GBP" }[u.ccy], premium: Number(p.total.toFixed(2)),
       breakdown: { mid: Number(p.mid.toFixed(2)), spread: Number(p.spread.toFixed(2)), fees: p.fee }, payout_probability: Number(p.chance.toFixed(3)),
       months: p.per.map(r => ({ month: r.mo.label, forward: Number(r.F.toFixed(u.dp)), premium: Number(r.cost.toFixed(2)) })), expires_at: new Date(Date.now() + 60000).toISOString() };
   }
-  if (e.p === "/v1/protections" && e.m === "POST") return { id: "pr_" + Math.random().toString(36).slice(2, 12), object: "protection", status: "pending_signature", quote_id: body.quote_id, created_at: now, next: "Client signs the confirmation; status moves to active once premium is received." };
+  if (e.p === "/v1/protections" && e.m === "POST") return { id: "pr_" + seededRandom().toString(36).slice(2, 12), object: "protection", status: "pending_signature", quote_id: body.quote_id, created_at: now, next: "Client signs the confirmation; status moves to active once premium is received." };
   if (e.p === "/v1/protections") return { data: bookOf().map((p, i) => ({ id: "pr_demo" + i, market: p.id, side: p.dir === "up" ? "ceiling" : "floor", structure: "paid", limit: p.K1, cap: p.K2, volume_per_month: p.q, first_month: MONTHS[p.s].label, last_month: MONTHS[p.e].label, status: "active" })), has_more: false };
   if (e.p === "/v1/settlements") return { data: [{ id: "st_demo1", protection: "pr_demo0", month: "Oct 26", benchmark_average: 0.612, limit: 0.6, payout: 2880, currency: "USD", status: "paid" }], has_more: false };
 }
