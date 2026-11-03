@@ -31,7 +31,7 @@ src/
   style.css                      original design system
   improvements.css               responsive, print and Budget lock styles
   mountain-assets.html           local generated mountain cache (not committed)
-  vendor/GLTFLoader.js           Three.js r128 GLB loader (MIT)
+  vendor/GLTFLoader.js           local Three.js r128 loader cache (not committed)
 packages/pricing/
   browser.js                     shared pure JavaScript pricing engine
   markets.json                   shared market definitions for JS and Python
@@ -69,7 +69,7 @@ uvicorn apps.api.main:app --reload
 Example:
 
 ```bash
-curl -X POST https://localhost:8000/v1/quotes \
+curl -X POST http://localhost:8000/v1/quotes \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: example-quote-001' \
   -d '{"market":"brent","side":"ceiling","structure":"paid","limit":72.5,"cap":88,"volume_per_month":8000,"start_month":1,"months":6}'
@@ -100,7 +100,7 @@ The browser tests cover Budget lock calculation and quote transfer, the main pri
 
 ## Mountain scene
 
-The landing page renders a 23,262-triangle alpine horn generated with Tripo API and embedded as a GLB during the build. `src/mountain-assets.html` is a local generated cache; when it is absent, the builder retrieves the public build-time source recorded in `tools/build.py`. The deployed HTML is self-contained and makes no mountain model request. A sampled 256×256 height grid aligns camera collision and waypoints with the model. World-space granite/snow shading, clouds, snow particles, ambient motion, scroll choreography and fine-pointer parallax run in Three.js; no mountain textures are downloaded. The scene retains a static fallback for reduced motion or unavailable WebGL.
+The landing page renders a 23,262-triangle alpine horn generated with Tripo API and embedded as a GLB during the build. `src/mountain-assets.html` and `src/vendor/GLTFLoader.js` are local caches; when either is absent, the builder retrieves the public mountain source or the pinned Three.js r128 loader source recorded in `tools/build.py`. The deployed HTML is self-contained and makes no mountain model or loader request. A sampled 256×256 height grid aligns camera collision and waypoints with the model. World-space granite/snow shading, clouds, snow particles, ambient motion, scroll choreography and fine-pointer parallax run in Three.js; no mountain textures are downloaded. The scene retains a static fallback for reduced motion or unavailable WebGL.
 
 ## Licence
 

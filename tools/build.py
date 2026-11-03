@@ -5,6 +5,7 @@ from urllib.request import urlopen
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 MOUNTAIN_SOURCE = "https://www.kimi.com/apiv2-files/sign-obj/kimi-fs%2Ffiles%2Fblob%2Fb2c7d112d869f28ee18ba3106e40da0418f35a051df08e5917806dbc963e9a11?filename=arete-mountain-assets.html&sig=pUjea2MRjBg8oceLg6RjeUryb7f8VhfS86Z5mJFUlMI=&t=o"
+LOADER_SOURCE = "https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"
 
 HEAD = """<!doctype html>
 <html lang="en" data-theme="light">
@@ -34,6 +35,15 @@ def mountain_asset() -> str:
         return response.read().decode("utf-8")
 
 
+def gltf_loader() -> str:
+    """Read the vendored loader, or retrieve its pinned upstream build-time source."""
+    path = SRC / "vendor" / "GLTFLoader.js"
+    if path.exists():
+        return path.read_text()
+    with urlopen(LOADER_SOURCE, timeout=90) as response:
+        return response.read().decode("utf-8")
+
+
 def script(source: str) -> str:
     assert "</script>" not in source, "escape </script> inside JavaScript as <\\/script>"
     return source
@@ -60,7 +70,7 @@ body = body.replace(
 styles = read("src/style.css") + "\n" + read("src/improvements.css")
 javascript = "\n".join([
     read("packages/pricing/browser.js"),
-    "if (typeof THREE !== \"undefined\") {\n" + read("src/vendor/GLTFLoader.js") + "\n}",
+    "if (typeof THREE !== \"undefined\") {\n" + gltf_loader() + "\n}",
     app_js,
     read("src/accessibility.js"),
     read("src/budget.js"),
