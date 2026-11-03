@@ -1,0 +1,74 @@
+<section class="view" data-view="budget" id="budget" hidden>
+  <div class="wrap page-h">
+    <span class="idx">BUDGET LOCK</span>
+    <h1>Turn a budget into a ceiling.</h1>
+    <p>Enter the commodity price your business has budgeted. Compare the upfront cost, payout likelihood and annual bill range.</p>
+  </div>
+  <main class="wrap budget-grid">
+    <form class="panel budget-form" id="budget-form" novalidate>
+      <div class="budget-form-head">
+        <h2>Your budget</h2>
+        <span class="idx">INDICATIVE · NEXT MONTH ONWARD</span>
+      </div>
+      <div class="fld">
+        <label for="budget-market">Product</label>
+        <select id="budget-market" name="market" required></select>
+      </div>
+      <div class="budget-fields">
+        <div class="fld">
+          <label for="budget-price">Budgeted price <span id="budget-unit" class="hint"></span></label>
+          <input id="budget-price" name="price" type="number" min="0" inputmode="decimal" required aria-describedby="budget-price-help">
+          <small class="hint" id="budget-price-help">The average price you want to protect.</small>
+        </div>
+        <div class="fld">
+          <label for="budget-volume">Volume a month <span id="budget-volume-unit" class="hint"></span></label>
+          <input id="budget-volume" name="volume" type="number" min="1" inputmode="decimal" required>
+        </div>
+      </div>
+      <div class="fld">
+        <label for="budget-months">Protection period</label>
+        <select id="budget-months" name="months">
+          <option value="1">1 month</option>
+          <option value="3">3 months</option>
+          <option value="6" selected>6 months</option>
+          <option value="9">9 months</option>
+          <option value="12">12 months</option>
+        </select>
+      </div>
+      <p class="hint">Paid protection only. The full premium is due upfront; there are no later charges or margin calls.</p>
+      <p class="err" id="budget-error" role="alert"></p>
+      <button class="btn block" type="submit" id="budget-calculate">Calculate budget lock</button>
+      <p class="hint">Illustrative market data. The range is modelled, not a forecast or guarantee of future prices.</p>
+    </form>
+
+    <section class="panel budget-results" id="budget-results" aria-live="polite" aria-busy="false">
+      <div class="empty budget-empty" id="budget-empty">
+        <span>Set your budget to see the protection cost and an 80% range for the annual bill.</span>
+      </div>
+      <div id="budget-output" hidden>
+        <div class="budget-result-head">
+          <div><span class="idx" id="budget-result-kicker"></span><h2 id="budget-result-title"></h2></div>
+          <span class="budget-badge" id="budget-badge"></span>
+        </div>
+        <div class="budget-kpis">
+          <div><small id="budget-cost-label">UPFRONT COST</small><b id="budget-cost"></b><span id="budget-cost-note"></span></div>
+          <div><small>CHANCE OF A PAYOUT</small><b id="budget-chance"></b><span>Average across covered months</span></div>
+          <div><small>BUDGETED PRICE</small><b id="budget-limit"></b><span id="budget-cover"></span></div>
+        </div>
+        <div class="budget-chart-head"><div><h3>Total bill over the protected period</h3><p class="hint">80% modelled range · line shows the median</p></div><span class="idx" id="budget-sample-count"></span></div>
+        <div class="budget-chart" id="budget-chart"></div>
+        <div class="budget-legend" aria-hidden="true"><span><i></i>80% range</span><span><i></i>Median bill</span></div>
+        <p class="hint" id="budget-chart-summary"></p>
+        <div class="budget-actions">
+          <button class="btn" id="budget-open-quote">Open in quote builder</button>
+          <button class="btn ghost" id="budget-recalculate">Recalculate</button>
+        </div>
+        <details>
+          <summary>How these figures are calculated</summary>
+          <p class="small" id="budget-method"></p>
+        </details>
+      </div>
+    </section>
+  </main>
+</section>
+

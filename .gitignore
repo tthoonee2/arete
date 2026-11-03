@@ -1,5 +1,9 @@
-build/
+node_modules/
 __pycache__/
+.pytest_cache/
 *.pyc
 .DS_Store
-tools/terrain/cache/
+.env
+index.html
+test-results/
+playwright-report/

@@ -107,40 +107,25 @@ function probAbove(u, mo, F, K) {
   return Math.min(1, Math.max(0, (optVal(u, mo, F, K - h, "c") - optVal(u, mo, F, K + h, "c")) / (2 * h * df)));
 }
 
-// Full quote for a structure. s = { u, dir, mode, q, ms, K1, K2, Kx, shock }
+// Paid protection only: the premium is due upfront and settlements never create a customer payable.
+// s = { u, dir, q, ms, K1, K2, shock }
 function price(s) {
-  const { u, q, ms } = s, up = s.dir === "up", t = up ? "c" : "p", ot = up ? "p" : "c", m = u.mult;
-  let mid = 0, ask = 0, chance = 0, owe = 0; const vols = [], per = [];
+  const { u, q, ms } = s, up = s.dir === "up", t = up ? "c" : "p", m = u.mult;
+  let mid = 0, ask = 0, chance = 0; const vols = [], per = [];
   ms.forEach(mo => {
     const F = fwd(u, mo) * (1 + (s.shock || 0)), T = (mo.t1 + mo.t2) / 2;
     let a = optVal(u, mo, F, s.K1, t, u.dvol), md = optVal(u, mo, F, s.K1, t);
     if (s.K2 != null) { a -= optVal(u, mo, F, s.K2, t, -u.dvol); md -= optVal(u, mo, F, s.K2, t); }
-    if (s.Kx != null) { a -= optVal(u, mo, F, s.Kx, ot, -u.dvol); md -= optVal(u, mo, F, s.Kx, ot); }
     ask += a * q * m; mid += md * q * m; per.push({ mo, F, cost: a * q * m + TICKET });
     const pa = probAbove(u, mo, F, s.K1); chance += up ? pa : 1 - pa;
-    if (s.Kx != null) { const px = probAbove(u, mo, F, s.Kx); owe += up ? 1 - px : px; }
     vols.push(volAt(u, F, s.K1, T));
   });
   const fee = TICKET * ms.length, total = ask + fee, n = ms.length;
-  return { mid, spread: ask - mid, fee, total, monthly: total / n, chance: chance / n, owe: owe / n, vol1: vols[0], volN: vols[n - 1], per };
+  return { mid, spread: ask - mid, fee, total, monthly: total / n, chance: chance / n, vol1: vols[0], volN: vols[n - 1], per };
 }
-// Zero-cost collar: scan the sold strike on the grid and take the one closest to zero net premium.
-function solveCollar(base, ticks, toPx) {
-  const up = base.dir === "up", k1 = Math.round((base.K1 - base.u.lo) / base.u.step);
-  const range = up ? [...Array(Math.max(0, k1)).keys()].reverse() : [...Array(Math.max(0, ticks - k1)).keys()].map(i => k1 + 1 + i);
-  let best = null;
-  for (const i of range) {
-    const Kx = toPx(i), p = price({ ...base, Kx });
-    if (!best || Math.abs(p.total) < Math.abs(best.p.total)) best = { Kx, p };
-    if (p.total < 0 && best.p.total < 0 && Math.abs(p.total) > Math.abs(best.p.total)) break;
-  }
-  // Infeasible only if even the sold strike next to the band start can't fund it. Grid rounding leaves a small residual, shown as upfront.
-  if (!best || (best.p.total > 0 && best.Kx === toPx(range[0]))) return null;
-  return best;
-}
-function settle(dir, K1, K2, Kx, x) {
-  if (dir === "up") return Math.max(0, Math.min(x, K2 == null ? Infinity : K2) - K1) - (Kx == null ? 0 : Math.max(Kx - x, 0));
-  return Math.max(0, K1 - Math.max(x, K2 == null ? -Infinity : K2)) - (Kx == null ? 0 : Math.max(x - Kx, 0));
+function settle(dir, K1, K2, x) {
+  if (dir === "up") return Math.max(0, Math.min(x, K2 == null ? Infinity : K2) - K1);
+  return Math.max(0, K1 - Math.max(x, K2 == null ? -Infinity : K2));
 }
 // Seeded sample history (placeholder for ICE settlement data).
 function sampleHistory(u) {
@@ -159,7 +144,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
-const state = { cat: "oil", id: "brent", dir: "up", mode: "band", limit: true, usage: 10000, pct: 80, s: 0, e: 5, anchor: null, k1: 0, k2: 0, shock: 0, expires: 0, user: store.get("pb:session"), portfolio: [], authMode: "signin", pendingBuy: false };
+const state = { cat: "oil", id: "brent", dir: "up", limit: true, usage: 10000, pct: 80, s: 0, e: 5, anchor: null, k1: 0, k2: 0, shock: 0, expires: 0, user: store.get("pb:session"), portfolio: [], authMode: "signin", pendingBuy: false };
 
 const fmtN = (v, dp) => v.toLocaleString("en-GB", { minimumFractionDigits: dp, maximumFractionDigits: dp });
 const money = (v, c, dp = 0) => (v < 0 ? "−" : "") + c + fmtN(Math.abs(v), dp);
@@ -190,13 +175,8 @@ function setDefaults() {
   if (up) state.k1 = Math.min(state.k1, n - 1); else state.k1 = Math.max(state.k1, 1);
   clampK2();
 }
-function quote(mode = state.mode) {
-  const u = cur(), base = { u, dir: state.dir, q: qty(), ms: sel(), K1: pxOf(u, state.k1), K2: noLimit() ? null : pxOf(u, state.k2), Kx: null, shock: state.shock };
-  if (mode === "collar") {
-    const c = solveCollar(base, ticks(u), i => pxOf(u, i));
-    if (!c) return { ...base, p: price(base), infeasible: true };
-    return { ...base, Kx: c.Kx, p: c.p };
-  }
+function quote() {
+  const u = cur(), base = { u, dir: state.dir, q: qty(), ms: sel(), K1: pxOf(u, state.k1), K2: noLimit() ? null : pxOf(u, state.k2), shock: state.shock };
   return { ...base, p: price(base) };
 }
 
@@ -206,7 +186,15 @@ function renderAcct() {
   $("acct").innerHTML = u
     ? `<div class="avatar" aria-hidden="true">${esc(u.company.slice(0, 2).toUpperCase())}</div><span class="acct-name">${esc(u.company)}</span><button class="btn ghost sm" id="signout">Sign out</button>`
     : `<button class="btn ghost sm" id="signin">Sign in</button><button class="btn sm" id="signup">Open account</button>`;
-  state.portfolio = u ? (store.get("pb:pf:" + u.email) || []) : [];
+  const saved = u ? (store.get("pb:pf:" + u.email) || []) : [];
+  // Convert legacy demo collars to paid protection so old browser sessions cannot restore a no-upfront route.
+  state.portfolio = saved.map(p => {
+    if (p.mode !== "collar") return p;
+    const market = ALL.find(item => item.id === p.id);
+    if (!market) return p;
+    const premium = price({ u: market, dir: p.dir, q: p.q, ms: MONTHS.slice(p.s, p.e + 1), K1: p.K1, K2: p.K2, shock: 0 }).total;
+    return { ...p, mode: "paid", prem: premium, cost: money(premium, market.ccy) };
+  });
   renderPortfolio();
 }
 function renderProducts() {
@@ -255,7 +243,6 @@ function renderCanvas(Q) {
   const k1 = Y(Q.K1), k2 = Q.K2 == null ? (up ? T : bot) : Y(Q.K2);
   o += zone(k1, k2, "var(--accent)", .16, "We pay you here", "var(--accent)");
   if (Q.K2 != null) o += zone(k2, up ? T : bot, "url(#hatch)", 1, "Not covered", "var(--muted)");
-  if (Q.Kx != null) o += zone(Y(Q.Kx), up ? bot : T, "var(--neg)", .13, "You pay us here", "var(--neg)");
   // month bars with likely range
   MONTHS.forEach((mo, i) => {
     const f = fwd(u, mo) * (1 + state.shock), tm = (mo.t1 + mo.t2) / 2, sd = atmVol(u, tm) * Math.sqrt(mo.t1 + (mo.t2 - mo.t1) / 3);
@@ -272,38 +259,32 @@ function renderCanvas(Q) {
   const hl = (v, stroke, dash, w) => `<line x1="${L}" x2="${W - g.R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${stroke}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
   o += hl(Q.K1, "var(--accent)", "", 2.5);
   if (Q.K2 != null) o += hl(Q.K2, "var(--accent)", "6 4", 1.6);
-  if (Q.Kx != null) o += hl(Q.Kx, "var(--neg)", "6 4", 1.6);
   o += `<line x1="${L}" x2="${W - g.R}" y1="${bot}" y2="${bot}" stroke="var(--muted)"/>`;
   o += `<line id="xh" x1="${L}" x2="${W - g.R}" y1="0" y2="0" stroke="var(--ink)" stroke-dasharray="2 3" visibility="hidden"/>`;
   const svg = $("cv"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H); svg.innerHTML = o;
 
   // draggable price handles (HTML so touch dragging works without blocking page scroll)
-  const hs = [{ k: "k1", v: Q.K1, t: `${up ? "Your max" : "Your min"} ${fmtS(u, Q.K1)}`, drag: true }];
-  if (Q.K2 != null) hs.push({ k: "k2", v: Q.K2, t: `Cover stops ${fmtS(u, Q.K2)}`, drag: true });
-  if (Q.Kx != null) hs.push({ k: "kx", v: Q.Kx, t: `You pay ${up ? "below" : "above"} ${fmtS(u, Q.Kx)}`, drag: false });
+  const hs = [{ k: "k1", v: Q.K1, t: `${up ? "Your max" : "Your min"} ${fmtS(u, Q.K1)}` }];
+  if (Q.K2 != null) hs.push({ k: "k2", v: Q.K2, t: `Cover stops ${fmtS(u, Q.K2)}` });
   hs.forEach(h => h.y = Y(h.v));
   // Keep "your price" tag on its line; move other tags away from it if they collide.
   const y1 = hs[0].y;
   hs.slice(1).forEach(h => { if (Math.abs(h.y - y1) < 32) h.y = y1 + (h.v > hs[0].v ? -32 : 32); });
-  $("handles").innerHTML = hs.map(h => h.drag
-    ? `<button class="handle ${h.k}" data-k="${h.k}" style="top:${h.y}px" role="slider" aria-label="${h.k === "k1" ? (up ? "Your maximum price" : "Your minimum price") : "Price where cover stops"}" aria-valuetext="${fmtP(u, h.v)}">${GRIP}${h.t}</button>`
-    : `<span class="handle kx" style="top:${h.y}px">${h.t}</span>`).join("");
-  $("lg-owe").hidden = Q.Kx == null;
+  $("handles").innerHTML = hs.map(h => `<button class="handle ${h.k}" data-k="${h.k}" style="top:${h.y}px" role="slider" aria-label="${h.k === "k1" ? (up ? "Your maximum price" : "Your minimum price") : "Price where cover stops"}" aria-valuetext="${fmtP(u, h.v)}">${GRIP}${h.t}</button>`).join("");
 }
 function tipAt(y) {
   const Q = window._lastQuote, g = state.geo, u = Q.u; if (!Q || !g) return;
   if (y < g.T || y > g.T + g.ph) { hideTip(); return; }
-  const v = Math.round(g.V(y) / u.step) * u.step, s = settle(Q.dir, Q.K1, Q.K2, Q.Kx, v) * Q.q;
+  const v = Math.round(g.V(y) / u.step) * u.step, s = settle(Q.dir, Q.K1, Q.K2, v) * Q.q;
   const xh = document.getElementById("xh"); if (xh) { xh.setAttribute("y1", y); xh.setAttribute("y2", y); xh.setAttribute("visibility", "visible"); }
   const t = $("tip"); t.hidden = false; t.style.top = y + "px"; t.style.left = (g.L + 6) + "px";
-  t.textContent = `If it averages ${fmtS(u, v)}: ${s > 0 ? "we pay you " + money(s, u.ccy) : s < 0 ? "you pay us " + money(-s, u.ccy) : "no payment"} a month`;
+  t.textContent = `If it averages ${fmtS(u, v)}: ${s > 0 ? "we pay you " + money(s, u.ccy) : "no payout"} for that month`;
 }
 function hideTip() { $("tip").hidden = true; const xh = document.getElementById("xh"); if (xh) xh.setAttribute("visibility", "hidden"); }
 
 function syncControls() {
   const u = cur(), up = state.dir === "up";
   $("dir-up").setAttribute("aria-pressed", up); $("dir-down").setAttribute("aria-pressed", !up);
-  $("mode-band").setAttribute("aria-pressed", state.mode === "band"); $("mode-collar").setAttribute("aria-pressed", state.mode === "collar");
   $("verb").textContent = up ? "buy" : "sell";
   $("usage-unit").textContent = u.units;
   if (document.activeElement !== $("usage")) $("usage").value = state.usage;
@@ -319,58 +300,40 @@ function syncControls() {
 }
 
 function renderTicket() {
-  const Q = quote(), u = Q.u, p = Q.p, up = Q.dir === "up", c = u.ccy, n = Q.ms.length, collar = state.mode === "collar";
+  const Q = quote(), u = Q.u, p = Q.p, up = Q.dir === "up", c = u.ccy, n = Q.ms.length;
   window._lastQuote = Q;
   $("tk-title").textContent = u.name;
   $("tk-sub").textContent = `Follows ${u.src}`;
   const when = n === 1 ? `In ${Q.ms[0].label}` : `From ${Q.ms[0].label} to ${Q.ms[n - 1].label}`;
-  let s = `${when}, in any month where the average price is <strong>${up ? "above" : "below"} ${fmtP(u, Q.K1)}</strong>, we pay you the difference on <strong>${fmtQ(u, Q.q)}</strong>${Q.K2 == null ? "" : `, until the price ${up ? "reaches" : "falls to"} ${fmtP(u, Q.K2)}`}.`;
-  if (collar && Q.Kx != null) s += ` In any month where it averages <strong>${up ? "below" : "above"} ${fmtP(u, Q.Kx)}</strong>, you pay us the difference.`;
-  $("sentence").innerHTML = s;
+  $("sentence").innerHTML = `${when}, in any month where the average price is <strong>${up ? "above" : "below"} ${fmtP(u, Q.K1)}</strong>, we pay you the difference on <strong>${fmtQ(u, Q.q)}</strong>${Q.K2 == null ? "" : `, until the price ${up ? "reaches" : "falls to"} ${fmtP(u, Q.K2)}`}.`;
 
   const perUnit = p.total / (Q.q * n);
-  let buyable = true;
-  if (collar && Q.infeasible) {
-    buyable = false;
-    $("big").textContent = "Not available"; $("big-lbl").textContent = "";
-    $("worst").innerHTML = `<small>Not possible at this price</small><b style="font-size:15px;font-weight:500">Move your price ${up ? "up" : "down"} or cap the cover.</b>`;
-  } else if (collar) {
-    const resid = Math.abs(p.total) < 0.5 ? 0 : p.total;
-    $("big").textContent = resid === 0 ? "Free" : money(Math.abs(resid), c);
-    $("big-lbl").textContent = resid === 0 ? "to set up" : resid < 0 ? "paid to you today" : "to pay today";
-    $("worst").innerHTML = `<small>Your price stays between</small><b>${fmtS(u, Math.min(Q.Kx, Q.K1))} and ${fmtP(u, Math.max(Q.Kx, Q.K1))}</b>${Q.K2 == null ? "" : `<small>Cover stops ${up ? "above" : "below"} ${fmtP(u, Q.K2)}</small>`}`;
-  } else {
-    $("big").textContent = money(p.monthly, c);
-    $("big-lbl").textContent = n > 1 ? `a month, ${money(p.total, c)} in total` : "in total";
-    $("worst").innerHTML = `<small>${up ? "Most you’ll pay, cost included" : "Least you’ll get, after cost"}</small><b>${fmtP(u, up ? Q.K1 + perUnit : Q.K1 - perUnit)}</b>${Q.K2 == null ? "" : `<small>Up to ${fmtP(u, Q.K2)}</small>`}`;
-  }
+  $("big").textContent = money(p.total, c);
+  $("big-lbl").textContent = n > 1 ? `upfront premium · ${money(p.monthly, c)} monthly average` : "upfront premium";
+  $("worst").innerHTML = `<small>${up ? "Most you’ll pay, cost included" : "Least you’ll get, after cost"}</small><b>${fmtP(u, up ? Q.K1 + perUnit : Q.K1 - perUnit)}</b>${Q.K2 == null ? "" : `<small>Up to ${fmtP(u, Q.K2)}</small>`}`;
   renderCanvas(Q);
   renderShare(Q);
-  const Qb = collar ? quote("band") : Q, Qc = collar ? Q : quote("collar");
-  $("pay-band").innerHTML = `${money(Qb.p.monthly, c)}<small> a month</small>`;
-  $("pay-band-sub").textContent = "Never owe more";
-  if (Qc.infeasible) { $("pay-collar").textContent = "—"; $("pay-collar-sub").textContent = "Not possible at this price"; }
-  else { const rc = Math.abs(Qc.p.total) < 0.5 ? 0 : Qc.p.total; $("pay-collar").innerHTML = rc === 0 ? "Free" : rc < 0 ? `+${money(-rc, c)}<small> to you</small>` : `${money(rc, c)}<small> today</small>`; $("pay-collar-sub").textContent = `You pay us ${up ? "below" : "above"} ${fmtS(u, Qc.Kx)}`; }
+  $("pay-band").innerHTML = `${money(p.total, c)}<small> upfront</small>`;
+  $("pay-band-sub").textContent = "Pay once upfront. Never owe more.";
 
-  const avg = avgFwd(u), edge = up ? u.hi : u.lo, far = up ? u.lo : u.hi;
-  const pts = [Q.Kx != null ? (Q.Kx + far) / 2 : null, Q.Kx, avg, Q.K2 != null ? (Q.K1 + Q.K2) / 2 : (Q.K1 + edge) / 2, Q.K2 ?? edge, Q.K2 != null ? edge : null]
+  const avg = avgFwd(u), edge = up ? u.hi : u.lo;
+  const pts = [avg, Q.K2 != null ? (Q.K1 + Q.K2) / 2 : (Q.K1 + edge) / 2, Q.K2 ?? edge, Q.K2 != null ? edge : null]
     .filter(v => v != null).map(v => Number((Math.round(v / u.step) * u.step).toFixed(u.dp))).filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => up ? a - b : b - a);
-  $("scen").innerHTML = pts.map(v => { const s = settle(Q.dir, Q.K1, Q.K2, Q.Kx, v) * Q.q; return `<tr><td>${fmtP(u, v)}${Math.abs(v - avg) < u.step ? " <span class=\"hint\">(today)</span>" : ""}</td><td class="${s < 0 ? "neg" : s > 0 ? "pos" : ""}">${s < 0 ? "You pay " + money(-s, c) : money(s, c)}</td></tr>`; }).join("");
+  $("scen").innerHTML = pts.map(v => { const s = settle(Q.dir, Q.K1, Q.K2, v) * Q.q; return `<tr><td>${fmtP(u, v)}${Math.abs(v - avg) < u.step ? " <span class=\"hint\">(today)</span>" : ""}</td><td class="${s > 0 ? "pos" : ""}">${money(s, c)}</td></tr>`; }).join("");
 
-  const pr = $("promise");
-  if (collar) { pr.className = "promise warn"; pr.textContent = "You may owe us. Needs a credit check."; }
-  else { pr.className = "promise"; pr.textContent = "You never owe more than this."; }
-  $("dl").innerHTML = `<tr><td>Market value</td><td>${money(p.mid, c)}</td></tr><tr><td>Trading cost</td><td>${money(p.spread, c)}</td></tr><tr><td>Service fee, ${money(TICKET, c)} a month</td><td>${money(p.fee, c)}</td></tr><tr class="total"><td>${collar ? "Net to pay today" : "Your price"}</td><td>${money(p.total, c)}</td></tr><tr><td>Chance of a payout in any month</td><td>${Math.round(p.chance * 100)}%</td></tr>${collar && !Q.infeasible ? `<tr><td>Chance you pay us in any month</td><td>${Math.round(p.owe * 100)}%</td></tr>` : ""}`;
+  $("promise").className = "promise";
+  $("promise").textContent = "Premium paid upfront. You never owe more.";
+  $("dl").innerHTML = `<tr><td>Market value</td><td>${money(p.mid, c)}</td></tr><tr><td>Trading cost</td><td>${money(p.spread, c)}</td></tr><tr><td>Service fee, ${money(TICKET, c)} a month</td><td>${money(p.fee, c)}</td></tr><tr class="total"><td>Upfront premium</td><td>${money(p.total, c)}</td></tr><tr><td>Chance of a payout in any month</td><td>${Math.round(p.chance * 100)}%</td></tr>`;
   $("method").textContent = `Black-76 on monthly averages, with forward curve, vol term structure and skew (${fmtN(p.vol1 * 100, 1)}% vol at your price).`;
-  $("buy").disabled = !buyable;
-  $("mb-lbl").textContent = collar ? "Today" : "Per month";
-  $("mb-val").textContent = Q.infeasible ? "Not available" : collar ? $("big").textContent : money(p.monthly, c);
+  $("buy").disabled = false;
+  $("mb-lbl").textContent = "Upfront";
+  $("mb-val").textContent = money(p.total, c);
 }
 
 // Protection cost as a share of the full monthly volume at expected prices, in total and month by month.
 function renderShare(Q) {
   const u = Q.u, c = u.ccy, use = state.usage, per = Q.p.per, up = Q.dir === "up";
-  if (Q.infeasible || !per || !per.length || u.model === "normal") { $("share").innerHTML = ""; return; }
+  if (!per || !per.length || u.model === "normal") { $("share").innerHTML = ""; return; }
   const rows = per.map(r => ({ label: r.mo.label, cost: r.cost, spend: use * r.F }));
   rows.forEach(r => r.pct = r.cost / r.spend * 100);
   const spend = rows.reduce((a, r) => a + r.spend, 0), pct = Q.p.total / spend * 100, mx = Math.max(...rows.map(r => Math.abs(r.pct)), 1e-6);
@@ -382,16 +345,15 @@ function renderShare(Q) {
 
 function renderBacktest(Q) {
   const u = Q.u, c = u.ccy, h = sampleHistory(u), F0 = fwd(u, MONTHS[0]), m0 = MONTHS[0];
-  if (Q.infeasible) { $("bt-sum").innerHTML = ""; $("bt-chart").innerHTML = ""; $("bt-note").textContent = "Choose a setup that’s available to see this."; return; }
   const one = price({ ...Q, ms: [{ ...m0, t1: 1 / 12, t2: 2 / 12 }], shock: 0 }), prem = one.total - one.fee;
   const rows = [];
   for (let j = 1; j < 25; j++) {
     const r = h[j - 1] / F0, sc = v => v == null ? null : v * r;
-    const pay = settle(Q.dir, sc(Q.K1), sc(Q.K2), sc(Q.Kx), h[j]) * Q.q, cost = prem * r + TICKET;
+    const pay = settle(Q.dir, sc(Q.K1), sc(Q.K2), h[j]) * Q.q, cost = prem * r + TICKET;
     rows.push({ pay, cost, net: pay - cost });
   }
   const tp = rows.reduce((a, r) => a + r.pay, 0), tc = rows.reduce((a, r) => a + r.cost, 0), hits = rows.filter(r => r.pay > 1e-6).length;
-  $("bt-sum").innerHTML = [["Months it paid out", `${hits} of 24`], [state.mode === "collar" ? "Net received" : "You’d have received", money(tp, c)], [state.mode === "collar" ? "Fees" : "You’d have paid", money(tc, c)]]
+  $("bt-sum").innerHTML = [["Months it paid out", `${hits} of 24`], ["You’d have received", money(tp, c)], ["Upfront premium", money(tc, c)]]
     .map(([a, b]) => `<div><small>${a}</small><b class="${b.startsWith("−") ? "neg" : ""}">${b}</b></div>`).join("");
   const W = 560, H = 110, L = 6, Rr = 6, T = 8, Bm = 20, mx = Math.max(1, ...rows.map(r => Math.abs(r.net)));
   const bw = (W - L - Rr) / 24, y0 = T + (H - T - Bm) / 2, k = (H - T - Bm) / 2 / mx;
@@ -453,22 +415,21 @@ function doLogin(sso) {
 
 // ---------- Confirm ----------
 function openConfirm() {
-  const Q = window._lastQuote, u = Q.u, collar = state.mode === "collar";
-  $("m-summary").innerHTML = $("sentence").innerHTML + (collar ? ` You pay <strong>${$("big").textContent}</strong> today.` : ` Your price: <strong>${money(Q.p.total, u.ccy)}</strong>, or ${money(Q.p.monthly, u.ccy)} a month.`);
-  ["c1", "c2", "c3"].forEach(id => $(id).checked = false);
-  $("c3-row").hidden = !collar;
-  $("c3-t").textContent = collar ? `I understand my business pays the difference if the price goes ${Q.dir === "up" ? "below" : "above"} ${fmtP(u, Q.Kx)}.` : "";
+  const Q = window._lastQuote, u = Q.u;
+  $("m-summary").innerHTML = $("sentence").innerHTML + ` Upfront premium: <strong>${money(Q.p.total, u.ccy)}</strong> (${money(Q.p.monthly, u.ccy)} monthly average). No later charges.`;
+  ["c1", "c2"].forEach(id => $(id).checked = false);
   $("m-confirm").disabled = true;
   $("overlay").hidden = false; $("m-cancel").focus();
 }
 const closeModal = () => { $("overlay").hidden = true; $("buy").focus(); };
-const canConfirm = () => $("c1").checked && $("c2").checked && (state.mode !== "collar" || $("c3").checked);
+const canConfirm = () => $("c1").checked && $("c2").checked;
 
 // ---------- Events ----------
 function renderTicker() {
   const one = ALL.map(u => `<button class="tk-chip" data-pick="${u.id}"><b>${u.name}</b><span>${fmtP(u, fwd(u, MONTHS[0]))}</span></button>`).join("");
   $("ticker").innerHTML = one + one.replace(/<button /g, '<button tabindex="-1" aria-hidden="true" ');
-  $("n-markets").textContent = ALL.length;
+  const count = $("n-markets");
+  if (count) count.textContent = ALL.length;
 }
 function pickAnywhere(id) {
   const cat = Object.keys(U).find(k => U[k].some(u => u.id === id)); if (!cat) return;
@@ -477,11 +438,9 @@ function pickAnywhere(id) {
 document.addEventListener("click", e => { const b = e.target.closest("[data-pick]"); if (b) pickAnywhere(b.dataset.pick); });
 function pick(id) { state.id = id; state.usage = cur().usage; state.shock = 0; setDefaults(); renderProducts(); render(); }
 $("cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; state.cat = b.dataset.cat; pick(U[state.cat][0].id); });
-$("tiles").addEventListener("click", e => { const b = e.target.closest("[data-id]"); if (b) pick(b.dataset.id); });
+$("tiles").addEventListener("click", e => { const b = e.target.closest("[data-id]"); if (!b) return; pick(b.dataset.id); });
 $("dir-up").addEventListener("click", () => { state.dir = "up"; setDefaults(); render(); });
 $("dir-down").addEventListener("click", () => { state.dir = "down"; setDefaults(); render(); });
-$("mode-band").addEventListener("click", () => { state.mode = "band"; render(); });
-$("mode-collar").addEventListener("click", () => { state.mode = "collar"; render(); });
 $("usage").addEventListener("input", e => { const v = Number(e.target.value); if (v > 0) { state.usage = v; render(); } });
 const qStep = () => { const u = cur(); return Math.max(u.qstep, Math.round(state.usage * 0.1 / u.qstep) * u.qstep); };
 $("q-minus").addEventListener("click", () => { const u = cur(); state.usage = Math.max(u.qstep, state.usage - qStep()); render(); });
@@ -540,15 +499,15 @@ $("buy").addEventListener("click", () => {
 $("mb-go").addEventListener("click", () => $("ticket").scrollIntoView({ behavior: "smooth", block: "start" }));
 $("m-cancel").addEventListener("click", closeModal);
 $("overlay").addEventListener("click", e => { if (e.target === $("overlay")) closeModal(); });
-["c1", "c2", "c3"].forEach(id => $(id).addEventListener("change", () => { $("m-confirm").disabled = !canConfirm(); }));
+["c1", "c2"].forEach(id => $(id).addEventListener("change", () => { $("m-confirm").disabled = !canConfirm(); }));
 $("m-confirm").addEventListener("click", () => {
   const Q = window._lastQuote, u = Q.u, up = Q.dir === "up", n = Q.ms.length;
   state.portfolio.unshift({
-    v: 2, id: u.id, dir: Q.dir, mode: state.mode, K1: Q.K1, K2: Q.K2, Kx: Q.Kx, q: Q.q, s: state.s, e: state.e, usage: state.usage, prem: Q.p.total, ccy: u.ccy, ts: Date.now(),
+    v: 2, id: u.id, dir: Q.dir, mode: "paid", K1: Q.K1, K2: Q.K2, q: Q.q, s: state.s, e: state.e, usage: state.usage, prem: Q.p.total, ccy: u.ccy, ts: Date.now(),
     title: `${u.name}: ${up ? "maximum" : "minimum"} price ${fmtP(u, Q.K1)}`,
-    detail: `${fmtQ(u, Q.q)} a month${Q.K2 == null ? "" : `, cover stops at ${fmtP(u, Q.K2)}`}${Q.Kx != null ? `, you pay ${up ? "below" : "above"} ${fmtP(u, Q.Kx)}` : ""}`,
+    detail: `${fmtQ(u, Q.q)} a month${Q.K2 == null ? "" : `, cover stops at ${fmtP(u, Q.K2)}`}`,
     months: n === 1 ? Q.ms[0].label : `${Q.ms[0].label} to ${Q.ms[n - 1].label}`,
-    cost: state.mode === "collar" ? $("big").textContent : money(Q.p.total, u.ccy)
+    cost: money(Q.p.total, u.ccy)
   });
   savePortfolio(); renderPortfolio(); closeModal();
   go("desk");
@@ -603,6 +562,7 @@ function renderMarkets() {
 // ================= Scroll story =================
 const ST = { W: 600, H: 380, L: 24, R: 16, T: 24, B: 112 };
 function buildStory() {
+  if (!$("story-svg")) return;
   ST.W = innerWidth < 600 ? 420 : 600; ST.small = innerWidth < 600;
   const { W, H, L, R, T, B } = ST, ph = H - T - B, n = 48, cap = 62;
   // Monthly knots, smoothed (Catmull-Rom) with a little noise: two spells above the max price.
@@ -659,7 +619,9 @@ function onScroll() {
     if (!reduce) document.querySelectorAll(".alps .ly").forEach(l => l.style.transform = `translateY(${(Math.min(y, 700) * Number(l.dataset.k)).toFixed(1)}px)`);
     if (document.body.dataset.view !== "home") return;
     if (reduce) { storyProgress(1); document.querySelectorAll("#steps li").forEach(li => li.classList.add("on")); return; }
-    const r = $("story").getBoundingClientRect(), span = r.height - window.innerHeight;
+    const story = $("story");
+    if (!story) return;
+    const r = story.getBoundingClientRect(), span = r.height - window.innerHeight;
     storyProgress(clamp01(-r.top / Math.max(1, span)));
   });
 }
@@ -781,10 +743,11 @@ async function buildAlp(cv, A, small) {
   return {
     R3, scene, cam, WP,
     resize(w, h) { R3.setSize(w, h, false); cam.aspect = w / h; cam.fov = w / h < .8 ? 66 : 48; cam.updateProjectionMatrix(); },
-    update(p, clock, dt) {
+    update(p, clock, dt, pointer) {
       const qv = p * 4, i = Math.min(3, Math.floor(qv)), f = qv - i, e = f * f * (3 - 2 * f);
       camCurve.getPoint(Math.min(1, p), cam.position);
-      cam.position.x += Math.sin(clock * .21) * 14; cam.position.y += Math.sin(clock * .33) * 8;
+      cam.position.x += Math.sin(clock * .21) * 14 + pointer.x * 42;
+      cam.position.y += Math.sin(clock * .33) * 8 + pointer.y * 24;
       cam.position.y = Math.max(cam.position.y, Hs(cam.position.x, cam.position.z) + 180);
       tgt.copy(TG[i]).lerp(TG[i + 1], e); cam.lookAt(tgt); sky.position.copy(cam.position);
       clouds.forEach(c => c.material.uniforms.t.value = clock);
@@ -816,12 +779,24 @@ async function initPeak() {
   new ResizeObserver(fit).observe(cv); fit();
   cv.classList.add("on");
   const cards = [...document.querySelectorAll(".wp")], hero = $("pk-hero"), end = $("pk-end"), hint = $("pk-hint");
+  const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+  PK.pointer = pointer;
+  if (!reduce && innerWidth >= 700 && matchMedia("(pointer: fine)").matches) {
+    peak.addEventListener("pointermove", e => {
+      const r = cv.getBoundingClientRect();
+      pointer.tx = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1));
+      pointer.ty = Math.max(-1, Math.min(1, 1 - (e.clientY - r.top) / r.height * 2));
+    }, { passive: true });
+    peak.addEventListener("pointerleave", () => { pointer.tx = 0; pointer.ty = 0; });
+  }
   let last = performance.now(), clock = 0;
   function frame(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now; clock += dt;
     PK.ps += (PK.p - PK.ps) * Math.min(1, dt * 3.2);
+    pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 2.4);
+    pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 2.4);
     const p = reduce ? 0.12 : PK.ps;
-    A.update(p, clock, dt);
+    A.update(p, clock, dt, pointer);
     if (!reduce) {
       const W = cv.clientWidth, Hh = cv.clientHeight, cl = x => Math.max(0, Math.min(1, x));
       hero.style.opacity = 1 - cl((p - .02) / .08); hero.style.transform = `translateY(calc(-46% - ${(p * 600).toFixed(0)}px))`; hero.style.pointerEvents = p < .08 ? "auto" : "none";
@@ -858,19 +833,18 @@ const mkt = id => ALL.find(u => u.id === id);
 const bookOf = () => (state.portfolio || []).filter(p => p.v === 2 && mkt(p.id));
 function posValue(p, shock) {
   const u = mkt(p.id), ms = MONTHS.slice(p.s, p.e + 1);
-  return price({ u, dir: p.dir, q: p.q, ms, K1: p.K1, K2: p.K2, Kx: p.Kx, shock });
+  return price({ u, dir: p.dir, q: p.q, ms, K1: p.K1, K2: p.K2, shock });
 }
 function demoBook() {
-  const mk = (id, dir, mode, a1, a2, s, e, usage, pct) => {
+  const mk = (id, dir, a1, a2, s, e, usage, pct) => {
     const u = mkt(id), at = a => u.model === "normal" ? u.F + a * u.vol0 : u.F * Math.exp(a * u.vol0), rs = v => Number((Math.round(v / u.step) * u.step).toFixed(6));
     const q = Math.round(usage * pct / u.qstep) * u.qstep, ms = MONTHS.slice(s, e + 1);
-    const base = { u, dir, q, ms, K1: rs(at(a1)), K2: a2 == null ? null : rs(at(a2)), Kx: null, shock: 0 };
-    let Kx = null, p = price(base);
-    if (mode === "collar") { const c = solveCollar(base, ticks(u), i => pxOf(u, i)); if (c) { Kx = c.Kx; p = c.p; } }
-    return { v: 2, id, dir, mode, K1: base.K1, K2: base.K2, Kx, q, s, e, usage, prem: p.total, ccy: u.ccy, ts: Date.now(),
+    const base = { u, dir, q, ms, K1: rs(at(a1)), K2: a2 == null ? null : rs(at(a2)), shock: 0 };
+    const p = price(base);
+    return { v: 2, id, dir, mode: "paid", K1: base.K1, K2: base.K2, q, s, e, usage, prem: p.total, ccy: u.ccy, ts: Date.now(),
       title: `${u.name}: ${dir === "up" ? "maximum" : "minimum"} price ${fmtP(u, base.K1)}`, detail: `${fmtQ(u, q)} a month`, months: `${ms[0].label} to ${ms[ms.length - 1].label}`, cost: money(p.total, u.ccy) };
   };
-  return [mk("diesel", "up", "band", .2, .8, 0, 5, 300000, .8), mk("copper", "up", "band", .25, 1, 0, 11, 40, .6), mk("ttf", "up", "collar", .3, null, 0, 4, 3000, .7), mk("arabica", "up", "band", .3, .9, 1, 6, 25000, .5), mk("psv", "up", "band", .3, .9, 0, 4, 3000, .7)];
+  return [mk("diesel", "up", .2, .8, 0, 5, 300000, .8), mk("copper", "up", .25, 1, 0, 11, 40, .6), mk("ttf", "up", .3, null, 0, 4, 3000, .7), mk("arabica", "up", .3, .9, 1, 6, 25000, .5), mk("psv", "up", .3, .9, 0, 4, 3000, .7)];
 }
 function renderDesk() {
   const el = $("desk-body"); if (!el) return;
@@ -879,7 +853,7 @@ function renderDesk() {
   if (!book.length) { el.innerHTML = `<div class="panel empty"><span>No protections yet. Place one from the pricing page, or load a demo book to explore the desk.</span><span style="display:flex;gap:8px"><a class="btn ghost sm" href="#price">Get a price</a><button class="btn sm" id="demo-book">Load demo book</button></span></div>`; return; }
   const sh = DESK.shock, rows = book.map(p => {
     const u = mkt(p.id), now = posValue(p, 0), st = posValue(p, sh), F = fwd(u, MONTHS[p.s]) * (1 + sh);
-    const pay = settle(p.dir, p.K1, p.K2, p.Kx, F) * p.q, notional = MONTHS.slice(p.s, p.e + 1).reduce((a, mo) => a + fwd(u, mo), 0) * p.q;
+    const pay = settle(p.dir, p.K1, p.K2, F) * p.q, notional = MONTHS.slice(p.s, p.e + 1).reduce((a, mo) => a + fwd(u, mo), 0) * p.q;
     const dist = u.model === "normal" ? (p.K1 - F) / u.vol0 : (p.K1 / F - 1);
     return { p, u, mtm: st.mid, mtm0: now.mid, pay, notional, F, dist };
   });
@@ -904,12 +878,11 @@ function renderDesk() {
   const alerts = rows.flatMap(r => { const a = [], u = r.u, near = u.model === "normal" ? Math.abs(r.dist) < 0.25 : Math.abs(r.dist) < 0.06;
     if (r.pay > 0) a.push(["w", `${u.name} is above your limit`, `Paying ${money(r.pay, u.ccy)} this month at ${fmtP(u, r.F)}.`]);
     else if (near) a.push(["w", `${u.name} is close to your limit`, `${fmtP(u, r.F)} against a limit of ${fmtP(u, r.p.K1)}.`]);
-    if (r.p.Kx != null && (r.p.dir === "up" ? r.F < r.p.Kx * 1.05 : r.F > r.p.Kx * .95)) a.push(["w", `${u.name} is near your collar floor`, `You pay below ${fmtP(u, r.p.Kx)}.`]);
     if (r.p.e - r.p.s < 1 || r.p.s === 0 && r.p.e <= 1) a.push(["", `${u.name} protection ends soon`, `Last covered month ${MONTHS[r.p.e].label}. Roll it from the pricing page.`]);
     return a; });
   const tbl = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Position</th><th>Months</th><th class="r">Limit</th><th class="r">Market</th><th class="r">Premium</th><th class="r">MTM</th><th class="r">P&amp;L</th><th></th></tr></thead><tbody>${rows.map((r, i) => {
     const u = r.u, pl = r.mtm - r.p.prem;
-    return `<tr><td><b>${u.name}</b><small>${r.p.mode === "collar" ? "Zero-cost collar" : r.p.dir === "up" ? "Ceiling" : "Floor"}, ${fmtQ(u, r.p.q)}/mo</small></td><td class="m">${MONTHS[r.p.s].label}–${MONTHS[r.p.e].label}</td><td class="r m">${fmtS(u, r.p.K1)}${r.p.K2 != null ? `<small>to ${fmtS(u, r.p.K2)}</small>` : ""}</td><td class="r m">${fmtS(u, r.F)}<small>${u.model === "normal" ? "" : (r.dist >= 0 ? "" : "+") + fmtN(-r.dist * 100, 1) + "% vs limit"}</small></td><td class="r m">${money(r.p.prem, u.ccy)}</td><td class="r m">${money(r.mtm, u.ccy)}</td><td class="r m ${pl >= 0 ? "pos" : "neg"}">${pl >= 0 ? "+" : ""}${money(pl, u.ccy)}</td><td class="r"><button class="linkbtn neg" data-rm="${state.portfolio.indexOf(r.p)}">Close</button></td></tr>`; }).join("")}</tbody></table></div>`;
+    return `<tr><td><b>${u.name}</b><small>${r.p.dir === "up" ? "Ceiling" : "Floor"}, ${fmtQ(u, r.p.q)}/mo</small></td><td class="m">${MONTHS[r.p.s].label}–${MONTHS[r.p.e].label}</td><td class="r m">${fmtS(u, r.p.K1)}${r.p.K2 != null ? `<small>to ${fmtS(u, r.p.K2)}</small>` : ""}</td><td class="r m">${fmtS(u, r.F)}<small>${u.model === "normal" ? "" : (r.dist >= 0 ? "" : "+") + fmtN(-r.dist * 100, 1) + "% vs limit"}</small></td><td class="r m">${money(r.p.prem, u.ccy)}</td><td class="r m">${money(r.mtm, u.ccy)}</td><td class="r m ${pl >= 0 ? "pos" : "neg"}">${pl >= 0 ? "+" : ""}${money(pl, u.ccy)}</td><td class="r"><button class="linkbtn neg" data-rm="${state.portfolio.indexOf(r.p)}">Close</button></td></tr>`; }).join("")}</tbody></table></div>`;
   el.innerHTML = `<div class="kpis">${kpis.map(([a, b, c]) => `<div class="kpi"><small>${a}</small><b>${b}</b><span>${c}</span></div>`).join("")}</div>
     <div class="desk-grid">
       <div class="col">
@@ -932,7 +905,7 @@ document.addEventListener("click", e => {
   const rm = e.target.closest("#desk-body [data-rm]"); if (rm) { state.portfolio.splice(Number(rm.dataset.rm), 1); savePortfolio(); renderDesk(); }
   if (e.target.closest("#desk-body [data-open-login]")) openLogin("signin");
   if (e.target.closest("#csv")) {
-    const lines = [["market", "side", "structure", "limit", "cap", "collar", "volume_per_month", "first_month", "last_month", "premium", "currency"].join(",")].concat(bookOf().map(p => [p.id, p.dir === "up" ? "ceiling" : "floor", p.mode, p.K1, p.K2 ?? "", p.Kx ?? "", p.q, MONTHS[p.s].label, MONTHS[p.e].label, p.prem.toFixed(2), p.ccy].join(",")));
+    const lines = [["market", "side", "structure", "limit", "cap", "volume_per_month", "first_month", "last_month", "upfront_premium", "currency"].join(",")].concat(bookOf().map(p => [p.id, p.dir === "up" ? "ceiling" : "floor", "paid", p.K1, p.K2 ?? "", p.q, MONTHS[p.s].label, MONTHS[p.e].label, p.prem.toFixed(2), p.ccy].join(",")));
     const a = document.createElement("a"); a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n")); a.download = "arete-book.csv"; document.body.appendChild(a); a.click(); a.remove();
   }
 });
@@ -1011,17 +984,17 @@ function apiHandle(e, body) {
   if (e.p === "/v1/quotes") {
     const u = mkt(body.market); if (!u) return { error: { type: "invalid_request", message: `Unknown market '${body.market}'` } };
     const dir = body.side === "floor" ? "down" : "up", s0 = Math.max(0, Math.min(11, (body.start_month || 1) - 1)), ms = MONTHS.slice(s0, Math.min(12, s0 + (body.months || 1)));
-    const base = { u, dir, q: Number(body.volume_per_month) || u.usage, ms, K1: Number(body.limit), K2: body.cap == null ? null : Number(body.cap), Kx: null, shock: 0 };
+    if (body.structure && body.structure !== "paid") return { error: { type: "invalid_request", message: "Only paid protection with an upfront premium is available." } };
+    const base = { u, dir, q: Number(body.volume_per_month) || u.usage, ms, K1: Number(body.limit), K2: body.cap == null ? null : Number(body.cap), shock: 0 };
     if (!(base.K1 > (u.model === "normal" ? -1e9 : 0))) return { error: { type: "invalid_request", message: "limit must be a number" } };
-    let p = price(base), Kx = null;
-    if (body.structure === "zero_cost") { const c = solveCollar(base, ticks(u), i => pxOf(u, i)); if (!c) return { error: { type: "unprocessable", message: "No zero-cost collar exists for this limit. Raise the limit or add a cap." } }; Kx = c.Kx; p = c.p; }
-    return { id: "qt_" + Math.random().toString(36).slice(2, 12), object: "quote", market: u.id, side: body.side, structure: body.structure || "paid", limit: base.K1, cap: base.K2, collar_strike: Kx,
+    const p = price(base);
+    return { id: "qt_" + Math.random().toString(36).slice(2, 12), object: "quote", market: u.id, side: body.side, structure: "paid", limit: base.K1, cap: base.K2, payment_timing: "upfront",
       volume_per_month: base.q, currency: { "$": "USD", "€": "EUR", "£": "GBP" }[u.ccy], premium: Number(p.total.toFixed(2)),
       breakdown: { mid: Number(p.mid.toFixed(2)), spread: Number(p.spread.toFixed(2)), fees: p.fee }, payout_probability: Number(p.chance.toFixed(3)),
       months: p.per.map(r => ({ month: r.mo.label, forward: Number(r.F.toFixed(u.dp)), premium: Number(r.cost.toFixed(2)) })), expires_at: new Date(Date.now() + 60000).toISOString() };
   }
   if (e.p === "/v1/protections" && e.m === "POST") return { id: "pr_" + Math.random().toString(36).slice(2, 12), object: "protection", status: "pending_signature", quote_id: body.quote_id, created_at: now, next: "Client signs the confirmation; status moves to active once premium is received." };
-  if (e.p === "/v1/protections") return { data: bookOf().map((p, i) => ({ id: "pr_demo" + i, market: p.id, side: p.dir === "up" ? "ceiling" : "floor", structure: p.mode === "collar" ? "zero_cost" : "paid", limit: p.K1, cap: p.K2, volume_per_month: p.q, first_month: MONTHS[p.s].label, last_month: MONTHS[p.e].label, status: "active" })), has_more: false };
+  if (e.p === "/v1/protections") return { data: bookOf().map((p, i) => ({ id: "pr_demo" + i, market: p.id, side: p.dir === "up" ? "ceiling" : "floor", structure: "paid", limit: p.K1, cap: p.K2, volume_per_month: p.q, first_month: MONTHS[p.s].label, last_month: MONTHS[p.e].label, status: "active" })), has_more: false };
   if (e.p === "/v1/settlements") return { data: [{ id: "st_demo1", protection: "pr_demo0", month: "Oct 26", benchmark_average: 0.612, limit: 0.6, payout: 2880, currency: "USD", status: "paid" }], has_more: false };
 }
 function hl(json) { return json.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/("(?:\\.|[^"\\])*")(\s*:)?|\b(-?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\b|\b(true|false|null)\b/g, (m, s, c, n, k) => s ? (c ? `<span class="k">${s}</span>${c}` : `<span class="s">${s}</span>`) : n ? `<span class="n">${n}</span>` : `<span class="n">${k}</span>`); }
@@ -1037,7 +1010,7 @@ function sendReq() {
 const WG = { id: "diesel", k: 0.25 };
 function renderWidget() {
   const u = mkt(WG.id), F = fwd(u, MONTHS[0]), K = u.model === "normal" ? F + WG.k * u.vol0 : F * Math.exp(WG.k * u.vol0), Kr = Number((Math.round(K / u.step) * u.step).toFixed(6));
-  const p = price({ u, dir: "up", q: u.usage, ms: MONTHS.slice(0, 6), K1: Kr, K2: null, Kx: null, shock: 0 });
+  const p = price({ u, dir: "up", q: u.usage, ms: MONTHS.slice(0, 6), K1: Kr, K2: null, shock: 0 });
   $("wdg").innerHTML = `<div class="wh"><span>Northbank Business · Price cap</span><span class="mono">LIVE</span></div>
     <select id="wg-m" aria-label="Market">${["diesel", "ttf", "copper", "arabica", "jet"].map(id => `<option value="${id}" ${id === WG.id ? "selected" : ""}>${mkt(id).name}</option>`).join("")}</select>
     <div class="row"><span class="hint">Maximum price</span><span class="val">${fmtP(u, Kr)}</span></div>
